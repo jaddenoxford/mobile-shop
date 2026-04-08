@@ -14,6 +14,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+    <!-- Connection Status Indicator -->
+    <div id="connection-status" style="position: fixed; top: 10px; right: 10px; z-index: 9999; font-size: 10px; padding: 4px 8px; border-radius: 20px; background: rgba(0,0,0,0.5); color: white; display: none;">
+        Checking connection...
+    </div>
+
     <!-- Login Screen -->
     <div class="app-container login-app" id="login-screen">
         <div class="login-wrapper" style="padding: env(safe-area-inset-top, 24px) 24px env(safe-area-inset-bottom, 24px); display: flex; flex-direction: column; justify-content: center; height: 100%;">

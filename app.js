@@ -1,13 +1,16 @@
 // Database Schema & Supabase Setup
 const supabaseUrl = 'https://qmuozgsapoivsvstqxzf.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtdW96Z3NhcG9pdnN2c3RxeHpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NjQ0ODksImV4cCI6MjA5MTI0MDQ4OX0.a9k0_7F1wRNP5MSjtAdPF_W74d_C37b0U79sH9rV55M';
-let supabase = null;
+let supabaseClient = null;
 
 try {
-    if (window.supabase && supabaseKey.startsWith('eyJ')) {
-        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    // Detect supabase library safely
+    const lib = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+    if (lib && supabaseKey.startsWith('eyJ')) {
+        supabaseClient = lib.createClient(supabaseUrl, supabaseKey);
+        console.log("Supabase Client initialized successfully.");
     } else {
-        console.warn("Invalid Supabase Anon Key detected. Running offline mode.");
+        console.warn("Supabase library not found. Running offline mode.");
     }
 } catch (e) {
     console.error("Supabase Init Error:", e);
@@ -23,40 +26,48 @@ const globalState = {
     platform_dealers: []
 };
 
+// App State
+let currentBillItems = [];
+let navItems = [];
+let pages = [];
+let pageTitleElement = null;
+
+function updateStatus(text, color) {
+    const el = document.getElementById('connection-status');
+    if(el) {
+        el.innerText = text;
+        el.style.background = color || 'rgba(0,0,0,0.5)';
+        el.style.display = 'block';
+    }
+}
+
 const DB_ACTIONS = {
     get: (key) => globalState[key] || [],
     
-    // Updates local state and syncs to Supabase in the background
     set: async (key, data) => {
         globalState[key] = data;
-        
-        // Save to local storage for robust offline mode
         localStorage.setItem(key, JSON.stringify(data));
-        
-        if (!supabase) return;
+        if (!supabaseClient) return;
         try {
-            const { error } = await supabase.from(key).upsert(data);
-            if (error) console.error('Supabase Sync Error:', error);
-        } catch(e) { 
-            console.error('Supabase Catch Error:', e);
-        }
+            await supabaseClient.from(key).upsert(data);
+        } catch(e) {}
     },
     
     init: async () => {
-        if (supabase) {
+        if (supabaseClient) {
+            updateStatus('Syncing Cloud...', '#007aff');
             try {
                 const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
                 await Promise.all(tables.map(async (table) => {
-                    const { data, error } = await supabase.from(table).select('*');
-                    if(!error && data) {
-                        globalState[table] = data;
-                    }
+                    const { data, error } = await supabaseClient.from(table).select('*');
+                    if(!error && data) globalState[table] = data;
                 }));
+                updateStatus('Cloud Database Connected', '#34c759');
             } catch(e) {
-                console.error('Failed to fetch from supabase', e);
+                updateStatus('Running Offline (Cloud Sync Error)', '#ff9500');
             }
         } else {
-            // Offline Fallback
+            updateStatus('Running Offline Mode', '#86868b');
             const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
             tables.forEach(t => {
                 const local = localStorage.getItem(t);
@@ -67,49 +78,49 @@ const DB_ACTIONS = {
             }
         }
         
-        // Render specific components post-fetch
-        const loggedType = localStorage.getItem('isLoggedIn');
-        if(loggedType === 'admin') {
-            if(typeof renderSuperAdmin !== 'undefined') renderSuperAdmin();
-        } else if(loggedType === 'dealer' || loggedType === 'true') {
-            if(typeof loadDashboard !== 'undefined') {
+        // Refresh UI if logged in
+        const type = localStorage.getItem('isLoggedIn');
+        if(type === 'admin') {
+            if(window.renderSuperAdmin) renderSuperAdmin();
+        } else if(type === 'dealer' || type === 'true') {
+            if(window.loadDashboard) {
                 loadDashboard();
                 updateForms();
                 populateMemoProducts();
+                renderMemos();
             }
         }
     }
 };
 
-// App State
-let currentBillItems = [];
-
-// DOM Elements
-const navItems = document.querySelectorAll('.nav-item');
-const pages = document.querySelectorAll('.page');
-const pageTitle = document.getElementById('page-title');
-
 // Initialize App
-document.addEventListener('DOMContentLoaded', async () => {
-    // Await database fetch before rendering logic
-    await DB_ACTIONS.init();
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Setup UI References
+    navItems = document.querySelectorAll('.nav-item');
+    pages = document.querySelectorAll('.page');
+    pageTitleElement = document.getElementById('page-title');
 
-    // Check auth
+    // 2. Immediate UI Launch
     const loggedType = localStorage.getItem('isLoggedIn');
     if(loggedType === 'admin') {
         document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'none';
-        if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'flex';
+        document.getElementById('superadmin-app').style.display = 'flex';
+        renderSuperAdmin();
     } else if(loggedType === 'dealer' || loggedType === 'true') {
         document.getElementById('login-screen').style.display = 'none';
-        if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
         document.getElementById('main-app').style.display = 'flex';
         setupNavigation();
+        loadDashboard();
+        updateForms();
     } else {
         document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('main-app').style.display = 'none';
-        if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
     }
+
+    // 3. Database Initialization (Background)
+    DB_ACTIONS.init().catch(err => {
+        console.error("Init Background Fail", err);
+        updateStatus('Database Error', '#ff3b30');
+    });
 });
 
 // Login Functions
@@ -212,7 +223,7 @@ function setupNavigation() {
             document.getElementById(target).classList.add('active');
             
             // Update Title
-            pageTitle.innerText = e.currentTarget.querySelector('span').innerText;
+            if(pageTitleElement) pageTitleElement.innerText = e.currentTarget.querySelector('span').innerText;
             
             // Render respective page
             if (target === 'dashboard') loadDashboard();
