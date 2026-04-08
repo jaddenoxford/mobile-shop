@@ -448,12 +448,27 @@ select {
     border-bottom: none;
 }
 
-/* Login Wrapper Background */
+/* Login Wrapper Perfect Fit */
 .login-wrapper {
     background: linear-gradient(135deg, #ffffff 0%, #f0f4fd 100%);
     position: relative;
     overflow: hidden;
+    height: 100dvh;
+    padding: env(safe-area-inset-top, 20px) 24px env(safe-area-inset-bottom, 20px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
 }
+
+@media (max-height: 600px) {
+    .login-wrapper { padding: 10px 20px; }
+    .login-wrapper div:first-child div { width: 50px !important; height: 50px !important; }
+    .login-wrapper h1 { font-size: 20px !important; }
+    .login-wrapper .input-group { margin-bottom: 12px !important; }
+    .login-wrapper .or-divider { margin: 10px 0 !important; }
+}
+
 
 /* Animations */
 @keyframes fadeInScale {
