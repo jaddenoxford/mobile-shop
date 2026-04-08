@@ -1,21 +1,61 @@
-// Database Schema & LocalStorage setup
-const DB_ACTIONS = {
-    get: (key) => JSON.parse(localStorage.getItem(key)) || [],
-    set: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
-    init: () => {
-        if (!localStorage.getItem('categories')) {
-            DB_ACTIONS.set('categories', [{ id: 1, name: 'Smartphones' }, { id: 2, name: 'Accessories' }]);
-        }
-        if (!localStorage.getItem('products')) DB_ACTIONS.set('products', []);
-        if (!localStorage.getItem('customers')) DB_ACTIONS.set('customers', []);
-        if (!localStorage.getItem('bills')) DB_ACTIONS.set('bills', []);
-        if (!localStorage.getItem('expenses')) DB_ACTIONS.set('expenses', []);
-        if (!localStorage.getItem('memos')) DB_ACTIONS.set('memos', []);
-        if (!localStorage.getItem('platform_dealers')) DB_ACTIONS.set('platform_dealers', []);
-    }
+// Database Schema & Supabase Setup
+const supabaseUrl = 'https://qmuozgsapoivsvstqxzf.supabase.co';
+const supabaseKey = 'sb_publishable_7kgwdxb8TUiYRGF_ziyYAw_HaWNEBH-';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+const globalState = {
+    categories: [],
+    products: [],
+    customers: [],
+    bills: [],
+    expenses: [],
+    memos: [],
+    platform_dealers: []
 };
 
-DB_ACTIONS.init();
+const DB_ACTIONS = {
+    get: (key) => globalState[key] || [],
+    
+    // Updates local state and syncs to Supabase in the background
+    set: async (key, data) => {
+        globalState[key] = data;
+        
+        try {
+            // Optimistic updates: push entire updated list back to the server
+            // Note: In an enterprise app, we'd upsert single records, but for a standalone management app this ensures perfect synch.
+            const { error } = await supabase.from(key).upsert(data);
+            if (error) console.error('Supabase Sync Error:', error);
+        } catch(e) { 
+            console.error('Supabase Catch Error:', e);
+        }
+    },
+    
+    init: async () => {
+        try {
+            const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
+            await Promise.all(tables.map(async (table) => {
+                const { data, error } = await supabase.from(table).select('*');
+                if(!error && data) {
+                    globalState[table] = data;
+                }
+            }));
+            
+            // Render specific components post-fetch
+            const loggedType = localStorage.getItem('isLoggedIn');
+            if(loggedType === 'admin') {
+                renderSuperAdmin();
+            } else if(loggedType === 'dealer' || loggedType === 'true') {
+                if(typeof loadDashboard !== 'undefined') {
+                    loadDashboard();
+                    updateForms();
+                    populateMemoProducts();
+                }
+            }
+        } catch(e) {
+            console.error('Failed to init app from supabase', e);
+        }
+    }
+};
 
 // App State
 let currentBillItems = [];
@@ -26,22 +66,21 @@ const pages = document.querySelectorAll('.page');
 const pageTitle = document.getElementById('page-title');
 
 // Initialize App
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Await database fetch before rendering logic
+    await DB_ACTIONS.init();
+
     // Check auth
     const loggedType = localStorage.getItem('isLoggedIn');
     if(loggedType === 'admin') {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'none';
         if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'flex';
-        renderSuperAdmin();
     } else if(loggedType === 'dealer' || loggedType === 'true') {
         document.getElementById('login-screen').style.display = 'none';
         if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
         document.getElementById('main-app').style.display = 'flex';
         setupNavigation();
-        loadDashboard();
-        updateForms();
-        populateMemoProducts();
     } else {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('main-app').style.display = 'none';
