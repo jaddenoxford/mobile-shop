@@ -549,27 +549,29 @@ select {
 
 .google-btn {
     background: white;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 0.5px solid var(--border-color);
-    box-shadow: var(--shadow-1);
+    width: 54px;
+    height: 54px;
+    border-radius: 16px; /* Slightly rounded square for modern look */
+    border: 1.5px solid #f1f1f3;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     cursor: pointer;
-    margin: 0 auto;
+    margin: 8px auto;
+    padding: 0;
+    transition: transform 0.2s, background 0.2s;
 }
 
 .google-btn:active {
-    transform: scale(0.92);
-    background: #f5f5f7;
+    transform: scale(0.94);
+    background: #fafafa;
 }
 
 .google-btn img {
-    width: 28px;
-    height: 28px;
+    width: 28px !important;
+    height: 28px !important;
+    display: block;
 }
 
 .social-login {
