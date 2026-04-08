@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MobiStore - Mobile Shop Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="app-container login-app" id="login-screen">
+        <div class="login-wrapper" style="padding: 32px 24px; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div style="width: 80px; height: 80px; background: var(--accent-blue); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: var(--shadow-1);">
+                    <i class="fa-brands fa-apple" style="font-size: 40px; color: white;"></i>
+                </div>
+                <h1 style="font-weight: 700; color: var(--text-primary); font-size: 26px;">MobiStore</h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 6px;">Premium Shop Management</p>
+            </div>
+            
+            <div class="login-tabs card" style="display: flex; padding: 4px; gap: 4px; margin-bottom: 24px; border-radius: 12px; box-shadow: var(--shadow-1);">
+                <button type="button" class="login-tab active" onclick="switchLoginTab('admin')" id="tab-admin" style="flex: 1; padding: 12px; border: none; background: #eaf2ff; color: var(--accent-blue); border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">Admin Login</button>
+                <button type="button" class="login-tab" onclick="switchLoginTab('dealer')" id="tab-dealer" style="flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-secondary); border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">Dealer Sign Up</button>
+            </div>
+            
+            <!-- Forms container -->
+            <div style="padding: 0 4px;">
+                <form id="form-admin-login" class="login-form active" onsubmit="handleLogin(event)">
+                    <div class="input-group">
+                        <label>Username / ID</label>
+                        <input type="text" value="admin" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" value="1234" required>
+                    </div>
+                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn" style="margin-top: 24px;">Login to Dashboard</button>
+                </form>
+                
+                <form id="form-dealer-signup" class="login-form" style="display:none;" onsubmit="handleLogin(event)">
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input type="text" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Phone Number</label>
+                        <input type="tel" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Shop / Business Name</label>
+                        <input type="text" required>
+                    </div>
+                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn" style="margin-top: 24px;">Submit Application</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Super Admin App -->
+    <div class="app-container" id="superadmin-app" style="display: none;">
+        <header class="top-header glass">
+            <h1 id="page-title">Super Admin Panel</h1>
+            <button type="button" onclick="handleLogout()" title="Logout" style="background: transparent; border: none; font-size: 22px; color: var(--danger); cursor: pointer; padding: 8px; border-radius: 50%; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.9)';" onmouseup="this.style.transform='scale(1)';">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </header>
+        <div class="content-pages" style="display:block;">
+            <div class="page-header">
+                <h2>Dealer Accounts</h2>
+                <p style="color:var(--text-secondary); font-size:13px;">Manage shop owners who purchased your software.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <p>Total Clients</p>
+                    <h3 id="sa-total-dealers" style="color:#0A84FF;">0</h3>
+                </div>
+                <div class="stat-card">
+                    <p>Software Revenue</p>
+                    <h3 style="color:#34c759;">₹0</h3>
+                </div>
+            </div>
+            <div class="card table-card" style="margin-top: 16px;">
+                <table class="apple-table">
+                    <thead><tr><th>Date</th><th>Shop Name</th><th>Phone</th><th>Status</th></tr></thead>
+                    <tbody id="sa-dealers-list">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (For Dealer) -->
+    <div class="app-container" id="main-app" style="display: none;">
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header glass">
+                <h1 id="page-title">Dashboard</h1>
+                <button type="button" onclick="handleLogout()" title="Logout" style="background: transparent; border: none; font-size: 22px; color: var(--danger); cursor: pointer; padding: 8px; border-radius: 50%; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.9)';" onmouseup="this.style.transform='scale(1)';">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </header>
+
+            <div class="content-pages">
+                <!-- Dashboard Page -->
+                <section id="dashboard" class="page active">
+                    <div class="stats-grid">
+                        <div class="stat-card fade-in">
+                            <div class="stat-icon" style="background:#eaf2ff; color:#0066cc;">
+                                <i class="fa-solid fa-indian-rupee-sign"></i>
+                            </div>
+                            <div class="stat-details">
+                                <p>Today's Sales</p>
+                                <h3 id="dash-today-sales">₹0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card fade-in" style="animation-delay: 0.1s;">
+                            <div class="stat-icon" style="background:#e8fdf2; color:#00c853;">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                            </div>
+                            <div class="stat-details">
+                                <p>Profit Today</p>
+                                <h3 id="dash-today-profit">₹0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card fade-in" style="animation-delay: 0.2s;">
+                            <div class="stat-icon" style="background:#fff4e5; color:#ff9800;">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                            </div>
+                            <div class="stat-details">
+                                <p>Items Sold</p>
+                                <h3 id="dash-items-sold">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-widgets">
+                        <div class="widget card">
+                            <div class="widget-header">
+                                <h3>Recent Transactions</h3>
+                            </div>
+                            <div class="table-container">
+                                <table class="apple-table">
+                                    <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+                                    <tbody id="dash-recent-tx"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Billing Page -->
+                <section id="billing" class="page">
+                    <div class="billing-container">
+                        <div class="billing-form card">
+                            <h2>New Invoice</h2>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Customer Name *</label>
+                                    <input type="text" id="bill-customer-name" placeholder="Enter name">
+                                </div>
+                                <div class="input-group">
+                                    <label>Phone Number *</label>
+                                    <input type="tel" id="bill-customer-phone" placeholder="Enter phone">
+                                </div>
+                            </div>
+                            <hr class="divider">
+                            <div class="product-selection">
+                                <div class="input-group search-product">
+                                    <label>Select Product</label>
+                                    <select id="bill-product-select">
+                                        <option value="">-- Choose Product --</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Quantity</label>
+                                    <input type="number" id="bill-product-qty" value="1" min="1">
+                                </div>
+                                <button id="btn-add-to-bill" class="btn primary-btn" style="margin-top: 24px;">Add</button>
+                            </div>
+                            <div class="table-container invoice-table-container">
+                                <table class="apple-table">
+                                    <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
+                                    <tbody id="bill-items"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="billing-summary card">
+                            <h3>Payment Summary</h3>
+                            <div class="summary-row"><span>Subtotal</span><span id="bill-subtotal">₹0.00</span></div>
+                            <div class="summary-row"><span>Discount %</span><input type="number" id="bill-discount" value="0" class="small-input"></div>
+                            <hr class="divider">
+                            <div class="summary-row total-row"><span>Grand Total</span><span id="bill-total">₹0.00</span></div>
+                            <button id="btn-generate-bill" class="btn checkout-btn">Generate Invoice</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Inventory Page -->
+                <section id="inventory" class="page">
+                    <div class="page-header">
+                        <h2>Inventory Management</h2>
+                        <button class="btn primary-btn" onclick="openModal('add-product-modal')">Add Product</button>
+                    </div>
+                    <div class="card table-card">
+                        <table class="apple-table" id="inventory-table">
+                            <thead>
+                                <tr><th>Product Name</th><th>Category</th><th>Stock</th><th>Cost (₹)</th><th>Selling (₹)</th><th>Margin (%)</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="inventory-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Categories Page -->
+                <section id="categories" class="page">
+                    <div class="page-header">
+                        <h2>Categories</h2>
+                        <button class="btn primary-btn" onclick="openModal('add-category-modal')">Add Category</button>
+                    </div>
+                    <div class="categories-grid" id="categories-list"></div>
+                </section>
+
+                <!-- Customers Page -->
+                <section id="customers" class="page">
+                    <div class="page-header">
+                        <h2>Customer Directory</h2>
+                    </div>
+                    <div class="card table-card">
+                        <table class="apple-table">
+                            <thead><tr><th>Name</th><th>Phone</th><th>Total Purchases</th></tr></thead>
+                            <tbody id="customers-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Reports Page -->
+                <section id="reports" class="page">
+                    <div class="page-header">
+                        <h2>Business Reports & Margins</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <p>Total Revenue</p>
+                            <h3 id="report-revenue" style="color:#000;">₹0</h3>
+                        </div>
+                        <div class="stat-card">
+                            <p>Total Setup Cost</p>
+                            <h3 id="report-cogs" style="color:#e53935;">₹0</h3>
+                        </div>
+                        <div class="stat-card">
+                            <p>Net Profit</p>
+                            <h3 id="report-net-profit" style="color:#00c853;">₹0</h3>
+                        </div>
+                    </div>
+                    <div class="card table-card" style="margin-top: 24px;">
+                        <h3>Sales Log</h3>
+                        <table class="apple-table">
+                            <thead><tr><th>Date</th><th>Invoice #</th><th>Items</th><th>Revenue</th><th>Profit</th></tr></thead>
+                            <tbody id="sales-log"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Expenses Page -->
+                <section id="expenses" class="page">
+                    <div class="page-header">
+                        <h2>Shop Expenses</h2>
+                        <button class="btn primary-btn" onclick="openModal('add-expense-modal')">Add Expense</button>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card" style="grid-column: span 2;">
+                            <p>Total Monthly Expenses</p>
+                            <h3 id="exp-total" style="color:#e53935; font-size: 24px;">₹0</h3>
+                        </div>
+                    </div>
+                    <div class="card table-card" style="margin-top: 16px;">
+                        <table class="apple-table">
+                            <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Desc</th></tr></thead>
+                            <tbody id="expenses-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Dealer Memo Page -->
+                <section id="dealer-memo" class="page">
+                    <div class="page-header">
+                        <h2>Dealer Items (Memo)</h2>
+                        <button class="btn primary-btn" onclick="openModal('add-memo-modal')">Issue Item</button>
+                    </div>
+                    <div class="card table-card" style="margin-top: 16px;">
+                        <table class="apple-table">
+                            <thead><tr><th>Date</th><th>Dealer</th><th>Item/Qty</th><th>Status</th><th>Act</th></tr></thead>
+                            <tbody id="memo-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+        
+        <!-- Bottom Navigation -->
+        <aside class="sidebar glass">
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-target="dashboard">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Home</span>
+                </button>
+                <button class="nav-item" data-target="billing">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Billing</span>
+                </button>
+                <button class="nav-item" data-target="inventory">
+                    <i class="fa-solid fa-box-open"></i>
+                    <span>Stock</span>
+                </button>
+                <button class="nav-item" data-target="customers">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Clients</span>
+                </button>
+                <button class="nav-item" data-target="expenses">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Expense</span>
+                </button>
+                <button class="nav-item" data-target="dealer-memo">
+                    <i class="fa-solid fa-handshake"></i>
+                    <span>Dealer</span>
+                </button>
+                <button class="nav-item" data-target="reports">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Reports</span>
+                </button>
+            </nav>
+        </aside>
+    </div>
+
+    <!-- Modals -->
+    <div id="add-product-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>Add New Product</h3>
+                <button class="close-btn" onclick="closeModal('add-product-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-product-form">
+                    <div class="input-group"><label>Product Name *</label><input type="text" id="prod-name" required></div>
+                    <div class="input-group"><label>Category *</label><select id="prod-category" required></select></div>
+                    <div class="input-group"><label>Stock Quantity *</label><input type="number" id="prod-stock" min="1" required></div>
+                    <div class="input-group"><label>Cost Price (₹) *</label><input type="number" id="prod-cp" min="0" required></div>
+                    <div class="input-group"><label>Selling Price (₹) *</label><input type="number" id="prod-sp" min="0" required></div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button type="submit" class="btn primary-btn">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-category-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Add Category</h3>
+                <button class="close-btn" onclick="closeModal('add-category-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-category-form">
+                    <div class="input-group"><label>Category Name *</label><input type="text" id="cat-name" required></div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button type="submit" class="btn primary-btn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expenses Modal -->
+    <div id="add-expense-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>Add Expense</h3>
+                <button class="close-btn" onclick="closeModal('add-expense-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-expense-form">
+                    <div class="input-group">
+                        <label>Category *</label>
+                        <select id="exp-category" required>
+                            <option value="Staff Salary">Staff Salary</option>
+                            <option value="Chai / Snacks">Chai / Snacks</option>
+                            <option value="Electricity / Light">Electricity / Light</option>
+                            <option value="Rent">Rent</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="input-group"><label>Description</label><input type="text" id="exp-desc" placeholder="Details..."></div>
+                    <div class="input-group"><label>Amount (₹) *</label><input type="number" id="exp-amount" min="1" required></div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button type="submit" class="btn primary-btn">Save Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dealer Memo Modal -->
+    <div id="add-memo-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>Issue Item to Dealer</h3>
+                <button class="close-btn" onclick="closeModal('add-memo-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-memo-form">
+                    <div class="input-group"><label>Dealer Name *</label><input type="text" id="memo-dealer" required></div>
+                    <div class="input-group"><label>Select Product *</label><select id="memo-product" required></select></div>
+                    <div class="input-group"><label>Quantity *</label><input type="number" id="memo-qty" min="1" value="1" required></div>
+                    <div class="input-group">
+                        <label>Initial Status</label>
+                        <select id="memo-status">
+                            <option value="Pending">Pending (Given)</option>
+                            <option value="Sold">Sold</option>
+                            <option value="Returned">Returned</option>
+                        </select>
+                    </div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button type="submit" class="btn primary-btn">Save Entry</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Change Modal for Dealer -->
+    <div id="status-memo-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Update Status</h3>
+                <button class="close-btn" onclick="closeModal('status-memo-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="update-memo-id">
+                <div class="input-group">
+                    <label>New Status</label>
+                    <select id="update-memo-status">
+                        <option value="Pending">Pending</option>
+                        <option value="Sold">Sold</option>
+                        <option value="Returned">Returned</option>
+                    </select>
+                </div>
+                <div style="margin-top:20px; text-align:right;">
+                    <button type="button" class="btn primary-btn" onclick="saveMemoStatus()">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

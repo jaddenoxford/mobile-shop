@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MobiStore - Mobile Shop Management</title>
+    <style>
+:root {
+    --bg-color: #f8f9fa; /* Material Light Theme background */
+    --card-bg: #ffffff;
+    --text-primary: #1f1f1f;
+    --text-secondary: #757575;
+    --accent-blue: #0b57d0; /* Material You Blue */
+    --accent-ripple: rgba(11, 87, 208, 0.1);
+    --border-color: #e0e0e0;
+    --success: #188038;
+    --danger: #d93025;
+    --warning: #f29900;
+    --shadow-1: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); /* Material Shadow 1 */
+    --shadow-2: 0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15); /* Material Shadow 2 */
+    --shadow-fab: 0 3px 5px -1px rgba(0,0,0,0.2),0 6px 10px 0 rgba(0,0,0,0.14),0 1px 18px 0 rgba(0,0,0,0.12);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 24px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', 'Inter', sans-serif; /* Android uses Roboto */
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: #e0e2e5; /* Desktop backdrop */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Force Android Phone Dimensions on Desktop */
+.app-container {
+    width: 100%;
+    max-width: 412px; /* Standard Android Screen Width */
+    height: 100%;
+    max-height: 915px; /* Standard Android Screen Height */
+    background: var(--bg-color);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make it full screen if actually on a real phone */
+@media (max-width: 480px) {
+    .app-container {
+        max-width: 100%;
+        max-height: 100%;
+        height: 100dvh;
+        box-shadow: none;
+        border-radius: 0;
+    }
+}
+
+/* Top App Bar (Android Style) */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.top-header {
+    height: 64px;
+    min-height: 64px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card-bg);
+    box-shadow: var(--shadow-1);
+    z-index: 10;
+}
+
+.top-header h1 {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.header-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.search-bar {
+    display: none; /* Hide complex search on app header */
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: #444746;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.icon-btn:active {
+    background: rgba(0,0,0,0.08); /* Ripple effect */
+}
+
+/* Scrollable Content Area */
+.content-pages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    padding-bottom: 24px;
+}
+
+.page {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Android Cards */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1);
+    padding: 16px;
+    margin-bottom: 16px;
+    border: none;
+}
+
+/* Layout adjustments */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: var(--shadow-1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.stat-details p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-details h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 4px;
+    color: var(--text-primary);
+}
+
+/* Android Bottom Navigation Bar */
+.sidebar {
+    height: 80px;
+    min-height: 80px;
+    background: #f3edfc; /* Material You active tint */
+    border-top: none;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    position: relative;
+}
+
+.sidebar-header, .sidebar-footer {
+    display: none;
+}
+
+.sidebar-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    padding: 0 8px;
+    background: var(--card-bg);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    min-width: 64px;
+    background: transparent;
+    border: none;
+    color: #444746;
+    cursor: pointer;
+    transition: 0.2s;
+    height: 100%;
+}
+
+.nav-item i {
+    font-size: 22px;
+    padding: 4px 20px;
+    border-radius: 16px;
+    transition: 0.2s;
+}
+
+.nav-item span {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.nav-item.active {
+    color: var(--text-primary);
+}
+
+.nav-item.active i {
+    background: #c2e7ff; /* Material You secondary container */
+    color: #001d35;
+}
+
+.nav-item:active i {
+    background: rgba(0,0,0,0.1); /* Touch ripple */
+}
+
+/* Tables -> Convert to Mobile Lists */
+.table-container {
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px;
+}
+
+.apple-table {
+    width: 100%;
+    min-width: 400px;
+    border-collapse: collapse;
+}
+
+.apple-table th, .apple-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.apple-table th {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.apple-table td {
+    font-size: 14px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 24px;
+    border-radius: var(--radius-lg); /* Pill shaped Android buttons */
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.1px;
+}
+
+.primary-btn {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.primary-btn:active {
+    background: #00369c;
+}
+
+.secondary-btn {
+    background: #f1f3f4;
+    color: var(--text-primary);
+}
+
+.danger-btn {
+    background: #fce8e6;
+    color: var(--danger);
+}
+
+.checkout-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: var(--radius-lg);
+    background: var(--accent-blue);
+    color: #fff;
+    margin-top: 16px;
+}
+
+/* Floating Action Style Buttons on Pages */
+.page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.page-header h2 {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.page-header .btn {
+    width: 100%;
+}
+
+/* Forms */
+.form-row {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+input, select {
+    padding: 14px 16px;
+    border-radius: 4px;
+    border: 1px solid #747775; /* Material Outline input style */
+    background: #fff;
+    font-size: 16px;
+    color: var(--text-primary);
+    transition: all 0.2s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+input:focus, select:focus {
+    border: 2px solid var(--accent-blue);
+    padding: 13px 15px; /* Offset border width */
+}
+
+select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444746' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 20px;
+    padding-right: 48px;
+}
+
+/* Billing specific */
+.billing-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 16px 0;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.small-input {
+    width: 60px;
+    padding: 8px;
+    text-align: right;
+    font-size: 14px;
+}
+
+/* Modals / Action Bottom Sheets */
+.modal {
+    display: none;
+    position: absolute; /* Keep it inside the mobile app container */
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: flex-end; /* Bottom sheet style */
+}
+
+.modal.show { 
+    display: flex; 
+}
+
+.modal-content {
+    background: #ffffff;
+    width: 100%;
+    border-radius: 28px 28px 0 0; /* Material bottom sheet radius */
+    box-shadow: var(--shadow-2);
+    display: flex;
+    flex-direction: column;
+    max-height: 90%;
+    animation: slideUp 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #444746;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* Hide scrollbars for cleaner app look */
+::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+/* Categories Grid */
+.categories-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.category-card {
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    text-align: center;
+    box-shadow: var(--shadow-1);
+    border: 1px solid var(--border-color);
+}
+
+.category-card h3 {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+</style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="sidebar-header">
+                <i class="fa-brands fa-apple store-logo"></i>
+                <h2>MobiStore</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-target="dashboard">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-target="billing">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Billing</span>
+                </button>
+                <button class="nav-item" data-target="inventory">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>Inventory</span>
+                </button>
+                <button class="nav-item" data-target="categories">
+                    <i class="fa-solid fa-tags"></i>
+                    <span>Categories</span>
+                </button>
+                <button class="nav-item" data-target="customers">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Customers</span>
+                </button>
+                <button class="nav-item" data-target="reports">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Reports & Profit</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header glass">
+                <h1 id="page-title">Dashboard</h1>
+            </header>
+
+            <div class="content-pages">
+                <!-- Dashboard Page -->
+                <section id="dashboard" class="page active">
+                    <div class="stats-grid">
+                        <div class="stat-card fade-in">
+                            <div class="stat-icon" style="background:#eaf2ff; color:#0066cc;">
+                                <i class="fa-solid fa-indian-rupee-sign"></i>
+                            </div>
+                            <div class="stat-details">
+                                <p>Today's Sales</p>
+                                <h3 id="dash-today-sales">₹0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card fade-in" style="animation-delay: 0.1s;">
+                            <div class="stat-icon" style="background:#e8fdf2; color:#00c853;">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                            </div>
+                            <div class="stat-details">
+                                <p>Profit Today</p>
+                                <h3 id="dash-today-profit">₹0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card fade-in" style="animation-delay: 0.2s;">
+                            <div class="stat-icon" style="background:#fff4e5; color:#ff9800;">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                            </div>
+                            <div class="stat-details">
+                                <p>Items Sold</p>
+                                <h3 id="dash-items-sold">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-widgets">
+                        <div class="widget card">
+                            <div class="widget-header">
+                                <h3>Recent Transactions</h3>
+                            </div>
+                            <div class="table-container">
+                                <table class="apple-table">
+                                    <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+                                    <tbody id="dash-recent-tx"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Billing Page -->
+                <section id="billing" class="page">
+                    <div class="billing-container">
+                        <div class="billing-form card">
+                            <h2>New Invoice</h2>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Customer Name *</label>
+                                    <input type="text" id="bill-customer-name" placeholder="Enter name">
+                                </div>
+                                <div class="input-group">
+                                    <label>Phone Number *</label>
+                                    <input type="tel" id="bill-customer-phone" placeholder="Enter phone">
+                                </div>
+                            </div>
+                            <hr class="divider">
+                            <div class="product-selection">
+                                <div class="input-group search-product">
+                                    <label>Select Product</label>
+                                    <select id="bill-product-select">
+                                        <option value="">-- Choose Product --</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Quantity</label>
+                                    <input type="number" id="bill-product-qty" value="1" min="1">
+                                </div>
+                                <button id="btn-add-to-bill" class="btn primary-btn" style="margin-top: 24px;">Add</button>
+                            </div>
+                            <div class="table-container invoice-table-container">
+                                <table class="apple-table">
+                                    <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>
+                                    <tbody id="bill-items"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="billing-summary card">
+                            <h3>Payment Summary</h3>
+                            <div class="summary-row"><span>Subtotal</span><span id="bill-subtotal">₹0.00</span></div>
+                            <div class="summary-row"><span>Discount %</span><input type="number" id="bill-discount" value="0" class="small-input"></div>
+                            <hr class="divider">
+                            <div class="summary-row total-row"><span>Grand Total</span><span id="bill-total">₹0.00</span></div>
+                            <button id="btn-generate-bill" class="btn checkout-btn">Generate Invoice</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Inventory Page -->
+                <section id="inventory" class="page">
+                    <div class="page-header">
+                        <h2>Inventory Management</h2>
+                        <button class="btn primary-btn" onclick="openModal('add-product-modal')">Add Product</button>
+                    </div>
+                    <div class="card table-card">
+                        <table class="apple-table" id="inventory-table">
+                            <thead>
+                                <tr><th>Product Name</th><th>Category</th><th>Stock</th><th>Cost (₹)</th><th>Selling (₹)</th><th>Margin (%)</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="inventory-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Categories Page -->
+                <section id="categories" class="page">
+                    <div class="page-header">
+                        <h2>Categories</h2>
+                        <button class="btn primary-btn" onclick="openModal('add-category-modal')">Add Category</button>
+                    </div>
+                    <div class="categories-grid" id="categories-list"></div>
+                </section>
+
+                <!-- Customers Page -->
+                <section id="customers" class="page">
+                    <div class="page-header">
+                        <h2>Customer Directory</h2>
+                    </div>
+                    <div class="card table-card">
+                        <table class="apple-table">
+                            <thead><tr><th>Name</th><th>Phone</th><th>Total Purchases</th></tr></thead>
+                            <tbody id="customers-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Reports Page -->
+                <section id="reports" class="page">
+                    <div class="page-header">
+                        <h2>Business Reports & Margins</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <p>Total Revenue</p>
+                            <h3 id="report-revenue" style="color:#000;">₹0</h3>
+                        </div>
+                        <div class="stat-card">
+                            <p>Total Setup Cost</p>
+                            <h3 id="report-cogs" style="color:#e53935;">₹0</h3>
+                        </div>
+                        <div class="stat-card">
+                            <p>Net Profit</p>
+                            <h3 id="report-net-profit" style="color:#00c853;">₹0</h3>
+                        </div>
+                    </div>
+                    <div class="card table-card" style="margin-top: 24px;">
+                        <h3>Sales Log</h3>
+                        <table class="apple-table">
+                            <thead><tr><th>Date</th><th>Invoice #</th><th>Items</th><th>Revenue</th><th>Profit</th></tr></thead>
+                            <tbody id="sales-log"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="add-product-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>Add New Product</h3>
+                <button class="close-btn" onclick="closeModal('add-product-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-product-form">
+                    <div class="input-group"><label>Product Name *</label><input type="text" id="prod-name" required></div>
+                    <div class="input-group"><label>Category *</label><select id="prod-category" required></select></div>
+                    <div class="input-group"><label>Stock Quantity *</label><input type="number" id="prod-stock" min="1" required></div>
+                    <div class="input-group"><label>Cost Price (₹) *</label><input type="number" id="prod-cp" min="0" required></div>
+                    <div class="input-group"><label>Selling Price (₹) *</label><input type="number" id="prod-sp" min="0" required></div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button type="submit" class="btn primary-btn">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-category-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Add Category</h3>
+                <button class="close-btn" onclick="closeModal('add-category-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="add-category-form">
+                    <div class="input-group"><label>Category Name *</label><input type="text" id="cat-name" required></div>
+                    <div style="margin-top:20px; text-align:right;">
+                        <button type="submit" class="btn primary-btn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// Database Schema & LocalStorage setup
+const DB_ACTIONS = {
+    get: (key) => JSON.parse(localStorage.getItem(key)) || [],
+    set: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+    init: () => {
+        if (!localStorage.getItem('categories')) {
+            DB_ACTIONS.set('categories', [{ id: 1, name: 'Smartphones' }, { id: 2, name: 'Accessories' }]);
+        }
+        if (!localStorage.getItem('products')) DB_ACTIONS.set('products', []);
+        if (!localStorage.getItem('customers')) DB_ACTIONS.set('customers', []);
+        if (!localStorage.getItem('bills')) DB_ACTIONS.set('bills', []);
+    }
+};
+
+DB_ACTIONS.init();
+
+// App State
+let currentBillItems = [];
+
+// DOM Elements
+const navItems = document.querySelectorAll('.nav-item');
+const pages = document.querySelectorAll('.page');
+const pageTitle = document.getElementById('page-title');
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+    setupNavigation();
+    loadDashboard();
+    updateForms();
+});
+
+// Navigation Handling
+function setupNavigation() {
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            const target = e.currentTarget.getAttribute('data-target');
+            
+            // Update Active Nav
+            navItems.forEach(nav => nav.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            
+            // Update Active Page
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(target).classList.add('active');
+            
+            // Update Title
+            pageTitle.innerText = e.currentTarget.querySelector('span').innerText;
+            
+            // Render respective page
+            if (target === 'dashboard') loadDashboard();
+            if (target === 'inventory') renderInventory();
+            if (target === 'categories') renderCategories();
+            if (target === 'customers') renderCustomers();
+            if (target === 'billing') initBilling();
+            if (target === 'reports') renderReports();
+        });
+    });
+}
+
+// Modals Handling
+function openModal(id) {
+    document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+// --- Categories Module ---
+document.getElementById('add-category-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('cat-name').value;
+    const cats = DB_ACTIONS.get('categories');
+    cats.push({ id: Date.now(), name });
+    DB_ACTIONS.set('categories', cats);
+    document.getElementById('add-category-form').reset();
+    closeModal('add-category-modal');
+    renderCategories();
+    updateForms();
+});
+
+function renderCategories() {
+    const cats = DB_ACTIONS.get('categories');
+    const list = document.getElementById('categories-list');
+    list.innerHTML = '';
+    cats.forEach(cat => {
+        list.innerHTML += `
+            <div class="category-card">
+                <h3>${cat.name}</h3>
+                <p style="color:#86868b; margin-top:8px; font-size:14px;">View Products</p>
+            </div>
+        `;
+    });
+}
+
+// --- Inventory Module ---
+document.getElementById('add-product-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const prod = {
+        id: Date.now(),
+        name: document.getElementById('prod-name').value,
+        catId: document.getElementById('prod-category').value,
+        stock: parseInt(document.getElementById('prod-stock').value),
+        cp: parseFloat(document.getElementById('prod-cp').value),
+        sp: parseFloat(document.getElementById('prod-sp').value),
+    };
+    const prods = DB_ACTIONS.get('products');
+    prods.push(prod);
+    DB_ACTIONS.set('products', prods);
+    document.getElementById('add-product-form').reset();
+    closeModal('add-product-modal');
+    renderInventory();
+});
+
+function renderInventory() {
+    const prods = DB_ACTIONS.get('products');
+    const cats = DB_ACTIONS.get('categories');
+    const tbody = document.getElementById('inventory-list');
+    tbody.innerHTML = '';
+    
+    prods.forEach(p => {
+        const cat = cats.find(c => c.id == p.catId)?.name || 'Unknown';
+        const margin = (((p.sp - p.cp) / p.cp) * 100).toFixed(1);
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${p.name}</strong></td>
+                <td>${cat}</td>
+                <td><span style="background:${p.stock > 5 ? '#e8fdf2' : '#fef0f0'}; color:${p.stock > 5 ? '#00c853' : '#ff3b30'}; padding: 4px 8px; border-radius: 12px; font-weight:600;">${p.stock}</span></td>
+                <td>₹${p.cp}</td>
+                <td>₹${p.sp}</td>
+                <td style="color:#0066cc;">${margin}%</td>
+                <td>
+                    <button class="btn secondary-btn" style="padding: 6px 12px;"><i class="fa-solid fa-edit"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// --- Billing Module ---
+function initBilling() {
+    updateForms();
+    currentBillItems = [];
+    renderBillItems();
+}
+
+function updateForms() {
+    // Populate Categories in Product Add Form
+    const cats = DB_ACTIONS.get('categories');
+    const catSelect = document.getElementById('prod-category');
+    if (catSelect) {
+        catSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    // Populate Products in Billing
+    const prods = DB_ACTIONS.get('products');
+    const prodSelect = document.getElementById('bill-product-select');
+    if (prodSelect) {
+        prodSelect.innerHTML = '<option value="">-- Choose Product --</option>' + 
+            prods.filter(p => p.stock > 0).map(p => `<option value="${p.id}">${p.name} - ₹${p.sp} (${p.stock} in stock)</option>`).join('');
+    }
+}
+
+document.getElementById('btn-add-to-bill').addEventListener('click', () => {
+    const prodId = document.getElementById('bill-product-select').value;
+    const qty = parseInt(document.getElementById('bill-product-qty').value);
+    
+    if (!prodId || qty < 1) return alert("Select product and valid quantity");
+    
+    const product = DB_ACTIONS.get('products').find(p => p.id == prodId);
+    if (product.stock < qty) return alert("Not enough stock!");
+    
+    const existingItem = currentBillItems.find(i => i.id == prodId);
+    if (existingItem) {
+        if(existingItem.qty + qty > product.stock) return alert("Not enough stock!");
+        existingItem.qty += qty;
+    } else {
+        currentBillItems.push({
+            ...product,
+            qty
+        });
+    }
+    
+    renderBillItems();
+});
+
+function renderBillItems() {
+    const tbody = document.getElementById('bill-items');
+    tbody.innerHTML = '';
+    
+    let subtotal = 0;
+    
+    currentBillItems.forEach((item, index) => {
+        const total = item.qty * item.sp;
+        subtotal += total;
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${item.name}</strong></td>
+                <td>${item.qty}</td>
+                <td>₹${item.sp}</td>
+                <td>₹${total}</td>
+                <td><button class="btn danger-btn" onclick="removeBillItem(${index})" style="padding: 6px 12px;"><i class="fa-solid fa-trash"></i></button></td>
+            </tr>
+        `;
+    });
+    
+    document.getElementById('bill-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
+    calculateTotal(subtotal);
+}
+
+function removeBillItem(index) {
+    currentBillItems.splice(index, 1);
+    renderBillItems();
+}
+
+document.getElementById('bill-discount').addEventListener('input', () => {
+    const subtotalText = document.getElementById('bill-subtotal').innerText.replace('₹', '');
+    calculateTotal(parseFloat(subtotalText) || 0);
+});
+
+function calculateTotal(subtotal) {
+    const discount = parseFloat(document.getElementById('bill-discount').value) || 0;
+    const afterDiscount = subtotal - (subtotal * discount / 100);
+    // Assuming prices are inclusive of GST for simplicity, or we can add GST.
+    // Let's keep it simple: Grand Total is after discount
+    document.getElementById('bill-total').innerText = `₹${afterDiscount.toFixed(2)}`;
+}
+
+document.getElementById('btn-generate-bill').addEventListener('click', () => {
+    if (currentBillItems.length === 0) return alert("Add items to bill");
+    
+    const custName = document.getElementById('bill-customer-name').value;
+    const custPhone = document.getElementById('bill-customer-phone').value;
+    
+    if(!custName) return alert("Customer name is required");
+    
+    const subtotal = parseFloat(document.getElementById('bill-subtotal').innerText.replace('₹', ''));
+    const discount = parseFloat(document.getElementById('bill-discount').value) || 0;
+    const total = parseFloat(document.getElementById('bill-total').innerText.replace('₹', ''));
+    
+    // Calculate Profit
+    let totalCost = 0;
+    currentBillItems.forEach(i => {
+        totalCost += (i.cp * i.qty);
+    });
+    const profit = total - totalCost;
+
+    const newBill = {
+        id: "INV" + Date.now().toString().slice(-6),
+        date: new Date().toISOString(),
+        customer: custName,
+        phone: custPhone,
+        items: [...currentBillItems],
+        total,
+        profit
+    };
+
+    // Save Bill
+    const bills = DB_ACTIONS.get('bills');
+    bills.push(newBill);
+    DB_ACTIONS.set('bills', bills);
+    
+    // Update Stock
+    const prods = DB_ACTIONS.get('products');
+    currentBillItems.forEach(item => {
+        const pIndex = prods.findIndex(p => p.id == item.id);
+        prods[pIndex].stock -= item.qty;
+    });
+    DB_ACTIONS.set('products', prods);
+    
+    // Update Customers
+    const customers = DB_ACTIONS.get('customers');
+    let custInfo = customers.find(c => c.phone === custPhone);
+    if(custInfo) {
+        custInfo.totalPurchases += total;
+        custInfo.lastVisit = newBill.date;
+    } else {
+        customers.push({
+            name: custName,
+            phone: custPhone,
+            totalPurchases: total,
+            lastVisit: newBill.date
+        });
+    }
+    DB_ACTIONS.set('customers', customers);
+    
+    alert(`Invoice ${newBill.id} generated successfully!`);
+    
+    // Reset Bill
+    currentBillItems = [];
+    document.getElementById('bill-customer-name').value = '';
+    document.getElementById('bill-customer-phone').value = '';
+    document.getElementById('bill-discount').value = '0';
+    initBilling();
+});
+
+// --- Dashboard & Reports ---
+function loadDashboard() {
+    const bills = DB_ACTIONS.get('bills');
+    const today = new Date().toISOString().split('T')[0];
+    
+    const todayBills = bills.filter(b => b.date.startsWith(today));
+    
+    const sales = todayBills.reduce((acc, b) => acc + b.total, 0);
+    const profit = todayBills.reduce((acc, b) => acc + b.profit, 0);
+    const itemsSold = todayBills.reduce((acc, b) => acc + b.items.reduce((s, i) => s + i.qty, 0), 0);
+    
+    document.getElementById('dash-today-sales').innerText = `₹${sales.toFixed(2)}`;
+    document.getElementById('dash-today-profit').innerText = `₹${profit.toFixed(2)}`;
+    document.getElementById('dash-items-sold').innerText = itemsSold;
+    
+    // Recent Tx
+    const txTbody = document.getElementById('dash-recent-tx');
+    txTbody.innerHTML = '';
+    if(bills.length === 0) {
+        txTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 2rem;">No transactions yet</td></tr>';
+    } else {
+        bills.slice(-5).reverse().forEach(b => {
+            txTbody.innerHTML += `
+                <tr>
+                    <td><strong>${b.id}</strong></td>
+                    <td>${b.customer}</td>
+                    <td>₹${b.total.toFixed(2)}</td>
+                    <td><span style="color:#34c759; font-weight:600;"><i class="fa-solid fa-check-circle"></i> Paid</span></td>
+                </tr>
+            `;
+        });
+    }
+}
+
+function renderCustomers() {
+    const customers = DB_ACTIONS.get('customers');
+    const tbody = document.getElementById('customers-list');
+    tbody.innerHTML = '';
+    customers.forEach(c => {
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.phone}</td>
+                <td>₹${c.totalPurchases.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+}
+
+function renderReports() {
+    const bills = DB_ACTIONS.get('bills');
+    
+    let totalRev = 0;
+    let totalProf = 0;
+    let totalItems = 0;
+    
+    const tbody = document.getElementById('sales-log');
+    tbody.innerHTML = '';
+    
+    bills.slice().reverse().forEach(b => {
+        totalRev += b.total;
+        totalProf += b.profit;
+        const itms = b.items.reduce((s,i) => s + i.qty, 0);
+        totalItems += itms;
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>${new Date(b.date).toLocaleDateString()}</td>
+                <td><strong>${b.id}</strong></td>
+                <td>${itms}</td>
+                <td>₹${b.total.toFixed(2)}</td>
+                <td style="color:#00c853;"><strong>₹${b.profit.toFixed(2)}</strong></td>
+            </tr>
+        `;
+    });
+    
+    document.getElementById('report-revenue').innerText = `₹${totalRev.toFixed(2)}`;
+    document.getElementById('report-cogs').innerText = `₹${(totalRev - totalProf).toFixed(2)}`;
+    document.getElementById('report-net-profit').innerText = `₹${totalProf.toFixed(2)}`;
+}
+
+</script>
+</body>
+</html>
+
