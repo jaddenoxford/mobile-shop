@@ -27,11 +27,14 @@
 body {
     background-color: var(--bg-color);
     width: 100%;
+    height: 100vh;
     height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    position: fixed; /* Prevent bouncy scrolling on the whole page */
+    top: 0; left: 0;
 }
 
 /* App Container */
@@ -89,7 +92,10 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     padding: 16px;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px)); /* Extra space for bottom nav */
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling for iOS */
+    display: flex;
+    flex-direction: column;
 }
 
 .page {
