@@ -206,24 +206,40 @@ async function handleGoogleLogin() {
     }
 }
 
-async function handleForgotPassword() {
-    const email = prompt("Please enter your registered Email ID:");
+function handleForgotPassword() {
+    openModal('modal-forgot-password');
+}
+
+async function handleForgotPasswordSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('reset-email').value;
     if (!email) return;
     
     if (!supabaseClient) return alert("System is offline. Reset not available.");
 
     try {
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerText;
+        btn.innerText = "Sending...";
+        btn.disabled = true;
+
         updateStatus('Sending Reset Link...', '#007aff');
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
             redirectTo: window.location.origin + '/reset-password',
         });
         
         if (error) throw error;
-        alert("Password reset link has been sent to " + email);
+        
+        alert("Success! Password reset link sent to " + email);
+        closeModal('modal-forgot-password');
         updateStatus('Reset Email Sent', '#34c759');
     } catch (e) {
         alert("Error: " + e.message);
         updateStatus('Reset Failed', '#ff3b30');
+    } finally {
+        const btn = e.target.querySelector('button');
+        btn.innerText = "Send Reset Link";
+        btn.disabled = false;
     }
 }
 

@@ -84,6 +84,30 @@
         </div>
     </div>
 
+    <!-- Forgot Password Modal (Unique UX) -->
+    <div class="modal forget-modal" id="modal-forgot-password">
+        <div class="modal-content glass" style="max-width: 320px; border-radius: 32px; padding: 32px; text-align: center;">
+            <div class="forget-icon-wrapper">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <h2 style="font-weight: 700; margin-bottom: 8px;">Reset Password</h2>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 24px; line-height: 1.5;">Enter email to receive a secure reset link.</p>
+            
+            <form onsubmit="handleForgotPasswordSubmit(event)">
+                <div class="input-group" style="text-align: left;">
+                    <label>Email Address</label>
+                    <input type="email" id="reset-email" placeholder="name@example.com" required style="border-radius: 12px; padding: 14px;">
+                </div>
+                <button type="submit" class="btn primary-btn" style="width: 100%; padding: 14px; border-radius: 12px; margin-top: 8px; font-weight: 600;">
+                    Send Reset Link
+                </button>
+                <button type="button" class="btn" onclick="closeModal('modal-forgot-password')" style="background: transparent; color: var(--text-secondary); font-size: 13px; margin-top: 12px;">
+                    Wait, I remembered!
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Super Admin App -->
     <div class="app-container" id="superadmin-app" style="display: none;">
         <header class="top-header glass">
