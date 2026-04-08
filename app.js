@@ -1,6 +1,6 @@
 // Database Schema & Supabase Setup
 const supabaseUrl = 'https://qmuozgsapoivsvstqxzf.supabase.co';
-const supabaseKey = 'sb_publishable_7kgwdxb8TUiYRGF_ziyYAw_HaWNEBH-'; // Invalid key format detected
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtdW96Z3NhcG9pdnN2c3RxeHpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NjQ0ODksImV4cCI6MjA5MTI0MDQ4OX0.a9k0_7F1wRNP5MSjtAdPF_W74d_C37b0U79sH9rV55M';
 let supabase = null;
 
 try {
