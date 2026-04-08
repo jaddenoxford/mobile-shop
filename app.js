@@ -1,7 +1,17 @@
 // Database Schema & Supabase Setup
 const supabaseUrl = 'https://qmuozgsapoivsvstqxzf.supabase.co';
-const supabaseKey = 'sb_publishable_7kgwdxb8TUiYRGF_ziyYAw_HaWNEBH-';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseKey = 'sb_publishable_7kgwdxb8TUiYRGF_ziyYAw_HaWNEBH-'; // Invalid key format detected
+let supabase = null;
+
+try {
+    if (window.supabase && supabaseKey.startsWith('eyJ')) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    } else {
+        console.warn("Invalid Supabase Anon Key detected. Running offline mode.");
+    }
+} catch (e) {
+    console.error("Supabase Init Error:", e);
+}
 
 const globalState = {
     categories: [],
@@ -20,9 +30,11 @@ const DB_ACTIONS = {
     set: async (key, data) => {
         globalState[key] = data;
         
+        // Save to local storage for robust offline mode
+        localStorage.setItem(key, JSON.stringify(data));
+        
+        if (!supabase) return;
         try {
-            // Optimistic updates: push entire updated list back to the server
-            // Note: In an enterprise app, we'd upsert single records, but for a standalone management app this ensures perfect synch.
             const { error } = await supabase.from(key).upsert(data);
             if (error) console.error('Supabase Sync Error:', error);
         } catch(e) { 
@@ -31,28 +43,40 @@ const DB_ACTIONS = {
     },
     
     init: async () => {
-        try {
-            const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
-            await Promise.all(tables.map(async (table) => {
-                const { data, error } = await supabase.from(table).select('*');
-                if(!error && data) {
-                    globalState[table] = data;
-                }
-            }));
-            
-            // Render specific components post-fetch
-            const loggedType = localStorage.getItem('isLoggedIn');
-            if(loggedType === 'admin') {
-                renderSuperAdmin();
-            } else if(loggedType === 'dealer' || loggedType === 'true') {
-                if(typeof loadDashboard !== 'undefined') {
-                    loadDashboard();
-                    updateForms();
-                    populateMemoProducts();
-                }
+        if (supabase) {
+            try {
+                const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
+                await Promise.all(tables.map(async (table) => {
+                    const { data, error } = await supabase.from(table).select('*');
+                    if(!error && data) {
+                        globalState[table] = data;
+                    }
+                }));
+            } catch(e) {
+                console.error('Failed to fetch from supabase', e);
             }
-        } catch(e) {
-            console.error('Failed to init app from supabase', e);
+        } else {
+            // Offline Fallback
+            const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
+            tables.forEach(t => {
+                const local = localStorage.getItem(t);
+                if (local) globalState[t] = JSON.parse(local);
+            });
+            if (globalState.categories.length === 0) {
+                globalState.categories = [{ id: 1, name: 'Smartphones' }, { id: 2, name: 'Accessories' }];
+            }
+        }
+        
+        // Render specific components post-fetch
+        const loggedType = localStorage.getItem('isLoggedIn');
+        if(loggedType === 'admin') {
+            if(typeof renderSuperAdmin !== 'undefined') renderSuperAdmin();
+        } else if(loggedType === 'dealer' || loggedType === 'true') {
+            if(typeof loadDashboard !== 'undefined') {
+                loadDashboard();
+                updateForms();
+                populateMemoProducts();
+            }
         }
     }
 };
