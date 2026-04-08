@@ -454,19 +454,41 @@ select {
     position: relative;
     overflow: hidden;
     height: 100dvh;
-    padding: env(safe-area-inset-top, 20px) 24px env(safe-area-inset-bottom, 20px);
+    padding: env(safe-area-inset-top, 16px) 24px env(safe-area-inset-bottom, 16px);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: stretch;
 }
 
+.login-form {
+    display: none;
+    width: 100%;
+}
+
+.login-form.active {
+    display: block;
+    animation: fadeInScale 0.3s ease;
+}
+
+@media (max-height: 740px) {
+    .login-wrapper div[style*="text-align: center"] { margin-bottom: 12px !important; }
+    .login-wrapper div[style*="width: 80px"] { width: 56px !important; height: 56px !important; margin-bottom: 8px !important; }
+    .login-wrapper div[style*="width: 80px"] i { font-size: 28px !important; }
+    .login-wrapper h1 { font-size: 22px !important; }
+    .login-wrapper p { font-size: 12px !important; }
+    .login-tabs { margin-bottom: 16px !important; }
+    .input-group { margin-bottom: 10px !important; }
+    .input-group label { margin-bottom: 4px !important; font-size: 11px !important; }
+    input { padding: 12px 14px !important; font-size: 14px !important; }
+    .btn { padding: 12px !important; font-size: 15px !important; }
+    .or-divider { margin: 12px 0 !important; }
+    .google-btn { width: 48px !important; height: 48px !important; }
+}
+
 @media (max-height: 600px) {
+    .login-wrapper div[style*="text-align: center"] { display: none !important; } /* Hide logo entirely on very small landscape/tiny phones to save space */
     .login-wrapper { padding: 10px 20px; }
-    .login-wrapper div:first-child div { width: 50px !important; height: 50px !important; }
-    .login-wrapper h1 { font-size: 20px !important; }
-    .login-wrapper .input-group { margin-bottom: 12px !important; }
-    .login-wrapper .or-divider { margin: 10px 0 !important; }
 }
 
 
