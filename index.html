@@ -44,9 +44,18 @@
                     </div>
                     <div class="input-group">
                         <label>Password</label>
-                        <input type="password" value="1234" required>
+                        <input type="password" id="admin-pass" value="1234" required>
                     </div>
-                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn" style="margin-top: 24px;">Login to Dashboard</button>
+                    <a href="#" class="forgot-link" onclick="handleForgotPassword()">Forgot Password?</a>
+                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn">Login to Dashboard</button>
+                    
+                    <div class="or-divider">OR</div>
+                    <div class="social-login">
+                        <button type="button" class="btn google-btn" onclick="handleGoogleLogin()">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google">
+                            Continue with Google
+                        </button>
+                    </div>
                 </form>
                 
                 <form id="form-dealer-signup" class="login-form" style="display:none;" onsubmit="handleLogin(event)">
@@ -62,7 +71,15 @@
                         <label>Shop / Business Name</label>
                         <input type="text" required>
                     </div>
-                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn" style="margin-top: 24px;">Submit Application</button>
+                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn">Submit Application</button>
+                    
+                    <div class="or-divider">OR</div>
+                    <div class="social-login" style="margin-top: 0;">
+                        <button type="button" class="btn google-btn" onclick="handleGoogleLogin()">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google">
+                            Quick Sign up with Google
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

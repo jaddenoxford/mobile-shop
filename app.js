@@ -116,7 +116,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('login-screen').style.display = 'flex';
     }
 
-    // 3. Database Initialization (Background)
+    // 3. Auth Redirect Listener (For Google Login)
+    if (supabaseClient) {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session && (event === 'SIGNED_IN')) {
+                localStorage.setItem('isLoggedIn', 'dealer');
+                location.reload(); // Refresh to enter app state
+            }
+        });
+    }
+
+    // 4. Database Initialization (Background)
     DB_ACTIONS.init().catch(err => {
         console.error("Init Background Fail", err);
         updateStatus('Database Error', '#ff3b30');
@@ -176,7 +186,49 @@ function handleLogin(e) {
     }
 }
 
+async function handleGoogleLogin() {
+    if (!supabaseClient) return alert("System is offline. Google login not available.");
+    
+    try {
+        updateStatus('Connecting Google...', '#007aff');
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
+        
+        if (error) throw error;
+        // Supabase will redirect to Google login page
+    } catch (e) {
+        alert("Google Error: " + e.message);
+        updateStatus('Google Failed', '#ff3b30');
+    }
+}
+
+async function handleForgotPassword() {
+    const email = prompt("Please enter your registered Email ID:");
+    if (!email) return;
+    
+    if (!supabaseClient) return alert("System is offline. Reset not available.");
+
+    try {
+        updateStatus('Sending Reset Link...', '#007aff');
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/reset-password',
+        });
+        
+        if (error) throw error;
+        alert("Password reset link has been sent to " + email);
+        updateStatus('Reset Email Sent', '#34c759');
+    } catch (e) {
+        alert("Error: " + e.message);
+        updateStatus('Reset Failed', '#ff3b30');
+    }
+}
+
 function handleLogout() {
+    if (supabaseClient) supabaseClient.auth.signOut();
     localStorage.setItem('isLoggedIn', 'false');
     document.getElementById('main-app').style.display = 'none';
     if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
