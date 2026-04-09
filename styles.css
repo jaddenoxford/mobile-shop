@@ -634,6 +634,37 @@ select {
     font-weight: 500;
 }
 
+/* Super Admin Styles */
+.admin-tabs .tab-btn {
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: 0.3s;
+    font-size: 13px;
+}
+.admin-tabs .tab-btn.active {
+    background: #eaf2ff;
+    color: var(--accent-blue);
+}
+.sa-page {
+    animation: fadeInScale 0.3s ease;
+}
+.sa-action-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    margin-right: 4px;
+}
+.sa-btn-block { background: #ffebee; color: #d32f2f; }
+.sa-btn-approve { background: #e8f5e9; color: #2e7d32; }
+
 /* Unique Forgot Password UI */
 .forget-modal {
     align-items: center;

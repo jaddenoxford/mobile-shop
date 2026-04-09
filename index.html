@@ -112,32 +112,72 @@
     <div class="app-container" id="superadmin-app" style="display: none;">
         <header class="top-header glass">
             <h1 id="page-title">Super Admin Panel</h1>
-            <button type="button" onclick="handleLogout()" title="Logout" style="background: transparent; border: none; font-size: 22px; color: var(--danger); cursor: pointer; padding: 8px; border-radius: 50%; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.9)';" onmouseup="this.style.transform='scale(1)';">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            </button>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <span id="sa-user-badge" style="background:#007aff; color:white; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600;">SUPER USER</span>
+                <button type="button" onclick="handleLogout()" title="Logout" style="background: transparent; border: none; font-size: 22px; color: var(--danger); cursor: pointer; padding: 8px; border-radius: 50%; transition: transform 0.2s;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
         </header>
-        <div class="content-pages" style="display:block;">
-            <div class="page-header">
-                <h2>Dealer Accounts</h2>
-                <p style="color:var(--text-secondary); font-size:13px;">Manage shop owners who purchased your software.</p>
+        
+        <div class="content-pages" style="display:block; padding: 16px;">
+            <!-- Tabs for Super Admin -->
+            <div class="admin-tabs" style="display:flex; gap:10px; margin-bottom:20px;">
+                <button class="tab-btn active" onclick="switchAdminPage('dealers')">Users</button>
+                <button class="tab-btn" onclick="switchAdminPage('revenue')">Revenue</button>
+                <button class="tab-btn" onclick="switchAdminPage('broadcast')">Alerts</button>
             </div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <p>Total Clients</p>
-                    <h3 id="sa-total-dealers" style="color:#0A84FF;">0</h3>
+
+            <!-- Page 1: Dealers Management -->
+            <div id="sa-page-dealers" class="sa-page active">
+                <div class="stats-grid">
+                    <div class="stat-card" style="border-left: 4px solid #007aff;">
+                        <p>Active Dealers</p>
+                        <h3 id="sa-total-dealers">0</h3>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid #34c759;">
+                        <p>Total Revenue</p>
+                        <h3 id="sa-total-revenue">₹0</h3>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <p>Software Revenue</p>
-                    <h3 style="color:#34c759;">₹0</h3>
+
+                <div class="card" style="padding:12px; margin-bottom:16px; display:flex; gap:8px;">
+                    <input type="text" id="sa-search-dealer" placeholder="Search shop or phone..." oninput="renderSuperAdmin()" style="flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; font-size:14px;">
+                    <select id="sa-filter-status" onchange="renderSuperAdmin()" style="width:120px; padding:10px; border-radius:10px; border:1px solid #ddd; font-size:14px;">
+                        <option value="all">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+
+                <div class="card table-card">
+                    <table class="apple-table">
+                        <thead><tr><th>Dealer / Shop</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="sa-dealers-list"></tbody>
+                    </table>
                 </div>
             </div>
-            <div class="card table-card" style="margin-top: 16px;">
-                <table class="apple-table">
-                    <thead><tr><th>Date</th><th>Shop Name</th><th>Phone</th><th>Status</th></tr></thead>
-                    <tbody id="sa-dealers-list">
-                        <!-- Populated dynamically -->
-                    </tbody>
-                </table>
+
+            <!-- Page 2: Revenue Tracking -->
+            <div id="sa-page-revenue" class="sa-page" style="display:none;">
+                <div class="card">
+                    <h3>Software Sales Log</h3>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">Tracking payments from dealers for software licenses.</p>
+                    <div id="sa-revenue-list">
+                        <!-- Revenue entries -->
+                        <div style="text-align:center; padding:40px; color:#999;">Revenue module coming in next update.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page 3: Broadcast -->
+            <div id="sa-page-broadcast" class="sa-page" style="display:none;">
+                <div class="card">
+                    <h3>Broadcast Message</h3>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:12px;">This message will appear on every dealer's dashboard.</p>
+                    <textarea id="sa-broadcast-msg" placeholder="Write announcement here..." style="width:100%; height:100px; padding:12px; border-radius:12px; border:1px solid #ddd; font-family:inherit; margin-bottom:12px;"></textarea>
+                    <button class="btn primary-btn" onclick="sendBroadcast()" style="width:100%;">Send to All Dealers</button>
+                </div>
             </div>
         </div>
     </div>

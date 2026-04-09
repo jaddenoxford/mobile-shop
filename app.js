@@ -362,32 +362,115 @@ function handleLogout() {
 }
 
 function renderSuperAdmin() {
-    const dealers = DB_ACTIONS.get('platform_dealers');
+    const search = document.getElementById('sa-search-dealer')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('sa-filter-status')?.value || 'all';
+    
+    let dealers = DB_ACTIONS.get('platform_dealers');
     const tbody = document.getElementById('sa-dealers-list');
     if(!tbody) return;
     
-    document.getElementById('sa-total-dealers').innerText = dealers.length;
+    // Apply Filters
+    dealers = dealers.filter(d => {
+        const matchesSearch = d.shopName.toLowerCase().includes(search) || d.phone.includes(search) || d.name.toLowerCase().includes(search);
+        const matchesStatus = statusFilter === 'all' || d.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    document.getElementById('sa-total-dealers').innerText = dealers.filter(d => d.status === 'Active').length;
     
     tbody.innerHTML = '';
     if(dealers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No licensed dealers yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">No dealers found matching criteria.</td></tr>';
         return;
     }
     
     dealers.forEach(d => {
+        const isBlocked = d.status === 'Blocked';
         tbody.innerHTML += `
             <tr>
-                <td>${new Date(d.date).toLocaleDateString()}</td>
-                <td><strong>${d.shopName}</strong></td>
+                <td>
+                    <div style="font-weight:700;">${d.shopName}</div>
+                    <div style="font-size:11px; color:#86868b;">${d.name} • ${new Date(d.date).toLocaleDateString()}</div>
+                </td>
                 <td>${d.phone}</td>
-                <td><span style="color:#34c759; font-weight:600;"><i class="fa-solid fa-check-circle"></i> ${d.status}</span></td>
+                <td>
+                    <span style="color:${isBlocked ? '#ff3b30' : '#34c759'}; font-weight:600; font-size:12px;">
+                        ${isBlocked ? '<i class="fa-solid fa-ban"></i> Blocked' : '<i class="fa-solid fa-check-circle"></i> Active'}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex; gap:4px;">
+                        <button class="sa-action-btn ${isBlocked ? 'sa-btn-approve' : 'sa-btn-block'}" onclick="toggleDealerStatus(${d.id})">
+                            ${isBlocked ? 'Approve' : 'Block'}
+                        </button>
+                        <button class="sa-action-btn" style="background:#f1f1f3;" onclick="deleteDealer(${d.id})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </td>
             </tr>
         `;
     });
 }
 
+function switchAdminPage(pageId) {
+    document.querySelectorAll('.sa-page').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(`sa-page-${pageId}`).style.display = 'block';
+    event.currentTarget.classList.add('active');
+}
+
+async function toggleDealerStatus(id) {
+    const dealers = DB_ACTIONS.get('platform_dealers');
+    const index = dealers.findIndex(d => d.id == id);
+    if (index === -1) return;
+    
+    dealers[index].status = dealers[index].status === 'Active' ? 'Blocked' : 'Active';
+    await DB_ACTIONS.set('platform_dealers', dealers);
+    renderSuperAdmin();
+}
+
+async function deleteDealer(id) {
+    if(!confirm("Are you sure you want to remove this dealer?")) return;
+    const dealers = DB_ACTIONS.get('platform_dealers');
+    const filtered = dealers.filter(d => d.id != id);
+    await DB_ACTIONS.set('platform_dealers', filtered);
+    renderSuperAdmin();
+}
+
+async function sendBroadcast() {
+    const msg = document.getElementById('sa-broadcast-msg').value;
+    if(!msg) return alert("Please enter a message");
+    
+    await DB_ACTIONS.set('system_announcement', { msg, date: new Date().toISOString() });
+    alert("Broadcast sent successfully!");
+    document.getElementById('sa-broadcast-msg').value = '';
+}
+
+function renderAnnouncement(msg) {
+    const existing = document.getElementById('system-announcement-bar');
+    if (existing) existing.remove();
+
+    const bar = document.createElement('div');
+    bar.id = 'system-announcement-bar';
+    bar.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, #fff 0%, #fff9e6 100%); border-left: 5px solid #ff9500; display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:12px 16px;">
+            <i class="fa-solid fa-bullhorn" style="color:#ff9500; font-size:18px;"></i>
+            <div style="flex:1; font-size:13px; font-weight:600; color:#444;">${msg}</div>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:transparent; border:none; color:#999; cursor:pointer;"><i class="fa-solid fa-times"></i></button>
+        </div>
+    `;
+    const container = document.querySelector('.content-pages');
+    if (container) container.prepend(bar);
+}
+
 // Navigation Handling
 function setupNavigation() {
+    // Check for announcements on every page navigation
+    const announcement = DB_ACTIONS.get('system_announcement');
+    if (announcement && announcement.msg) {
+        renderAnnouncement(announcement.msg);
+    }
+
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             const target = e.currentTarget.getAttribute('data-target');
