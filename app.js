@@ -39,12 +39,12 @@ let pageTitleElement = null;
 
 function updateStatus(text, color) {
     console.log(`Status: ${text}`);
-    const el = document.getElementById('connection-status');
-    if(el) {
-        el.innerText = text;
-        el.style.background = color || 'rgba(0,0,0,0.5)';
-        el.style.display = 'block';
-    }
+    const pill = document.getElementById('connection-status-pill');
+    const dot = pill?.querySelector('.status-dot');
+    const statusText = document.getElementById('connection-status-text');
+    
+    if(statusText) statusText.innerText = text;
+    if(dot) dot.style.background = color || '#86868b';
 }
 
 // Manual Token Handler (Fallback)
@@ -248,6 +248,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mark as logged in immediately
         localStorage.setItem('isLoggedIn', 'dealer');
         localStorage.setItem('userEmail', user.email);
+        localStorage.setItem('dealerId', user.id || 'DLR' + Date.now());
+
+        // Update name in menu if available
+        const menuShop = document.getElementById('menu-shop-name');
+        const menuId = document.getElementById('menu-user-id');
+        if(menuShop) menuShop.innerText = metadata.full_name || metadata.name || user.email.split('@')[0];
+        if(menuId) menuId.innerText = "ID: " + (user.id ? user.id.slice(0,8).toUpperCase() : 'DEMO');
         
         // Remove hash from URL
         if (window.location.hash) {
@@ -272,6 +279,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 dealers.push(newDealer);
                 await DB_ACTIONS.set('platform_dealers', dealers);
             }
+
+            // Flag for auto-restore check if data is empty
+            const products = DB_ACTIONS.get('products');
+            if (products.length === 0) {
+                localStorage.setItem('checkDriveBackup', 'true');
+            }
         } catch (e) {
             console.error("Registration Error:", e);
         }
@@ -285,7 +298,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. Database Initialization (Background)
-    DB_ACTIONS.init().catch(err => {
+    DB_ACTIONS.init().then(() => {
+        // Auto-restore trigger
+        if (localStorage.getItem('checkDriveBackup') === 'true' && localStorage.getItem('isLoggedIn') === 'dealer') {
+            localStorage.removeItem('checkDriveBackup');
+            setTimeout(() => {
+                if (confirm("Welcome back! Would you like to restore your shop data from your Google Drive backup?")) {
+                    restoreFromGoogleDrive();
+                }
+            }, 1000);
+        }
+    }).catch(err => {
         console.error("Init Background Fail", err);
         updateStatus('Database Error', '#ff3b30');
     });
@@ -392,12 +415,147 @@ function exportDataToJSON() {
     a.click();
 }
 
-function openDriveBackup() {
-    alert("Connecting to Google Drive...\n\n(Note: Ensure you have granted permissions in your Google Account for 'MobiStore' to save backup files.)");
-    // In a real app, this would trigger gapi.auth2 and upload the JSON
-    // For now, we simulate success as requested.
-    exportDataToJSON();
-    alert("Backup successfully synced to Google Drive App Data!");
+// --- Google Drive Real Implementation ---
+const DRIVE_FILE_NAME = 'MobiStore_Data_Backup.json';
+
+async function getGoogleAccessToken() {
+    if (!supabaseClient) return null;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session?.provider_token || null;
+}
+
+async function openDriveBackup() {
+    let token = await getGoogleAccessToken();
+    
+    if (!token) {
+        if(confirm("To backup to Google Drive, you should sign in with Google and grant 'drive.file' permission. Continue?")) {
+            handleGoogleLogin();
+        }
+        return;
+    }
+
+    try {
+        updateStatus('Syncing to Drive...', '#007aff');
+        const data = {
+            meta: { 
+                dealerId: localStorage.getItem('dealerId'), 
+                exportDate: new Date().toISOString(),
+                shopName: localStorage.getItem('shopName')
+            },
+            categories: DB_ACTIONS.get('categories'),
+            products: DB_ACTIONS.get('products'),
+            customers: DB_ACTIONS.get('customers'),
+            bills: DB_ACTIONS.get('bills'),
+            expenses: DB_ACTIONS.get('expenses'),
+            memos: DB_ACTIONS.get('memos')
+        };
+
+        // 1. Search for existing file
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}'&fields=files(id)`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const searchData = await searchRes.json();
+        
+        if (searchData.error) {
+            if (searchData.error.status === 'UNAUTHENTICATED' || searchData.error.code === 401 || searchData.error.code === 403) {
+                alert("Session expired or permissions missing. Re-logging in...");
+                handleGoogleLogin();
+                return;
+            }
+            throw new Error(searchData.error.message);
+        }
+
+        const existingFileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
+
+        let res;
+        if (existingFileId) {
+            // Update existing
+            res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        } else {
+            // Create new
+            const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+
+            res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: form
+            });
+        }
+
+        if (res.ok) {
+            alert("✅ Shop data successfully backed up to your Google Drive!");
+            updateStatus('Cloud Sync Active', '#34c759');
+        } else {
+            const err = await res.json();
+            throw new Error(err.error?.message || "Failed to save to Drive");
+        }
+    } catch (e) {
+        console.error("Drive Backup Error:", e);
+        alert("Drive Backup Failed: " + e.message + "\n\nTry logging in again to refresh Google permissions.");
+        updateStatus('Drive Failed', '#ff3b30');
+    }
+}
+
+async function restoreFromGoogleDrive() {
+    let token = await getGoogleAccessToken();
+    if (!token) {
+        alert("Please login with Google first to access your Drive.");
+        handleGoogleLogin();
+        return;
+    }
+
+    try {
+        updateStatus('Restoring from Drive...', '#007aff');
+        
+        // 1. Search for file
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}'&fields=files(id)`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const searchData = await searchRes.json();
+        const existingFileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
+
+        if (!existingFileId) {
+            alert("No MobiStore backup file found on your Google Drive.");
+            updateStatus('Cloud Sync Active', '#34c759');
+            return;
+        }
+
+        // 2. Download content
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFileId}?alt=media`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            const dateStr = data.meta?.exportDate ? new Date(data.meta.exportDate).toLocaleString() : 'Unknown Date';
+            
+            if (confirm(`Found backup for "${data.meta?.shopName || 'Unknown Shop'}" from ${dateStr}. \n\nThis will REPLACE your current local data. Continue?`)) {
+                const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos'];
+                for (const t of tables) {
+                    if (data[t]) {
+                        // Set in global state and localStorage
+                        globalState[t] = data[t];
+                        localStorage.setItem(t, JSON.stringify(data[t]));
+                    }
+                }
+                alert("✅ Restoration Successful! The app will now reload.");
+                location.reload();
+            }
+        } else {
+            throw new Error("Failed to download backup file from Drive.");
+        }
+    } catch (e) {
+        console.error("Drive Restore Error:", e);
+        alert("Drive Restore Failed: " + e.message);
+        updateStatus('Restore Failed', '#ff3b30');
+    }
 }
 
 async function handleGoogleLogin() {
@@ -405,13 +563,17 @@ async function handleGoogleLogin() {
     
     try {
         updateStatus('Connecting Google...', '#007aff');
-        // Ensure redirect URL matches Supabase whitelist exactly (no trailing slash)
         const redirectUrl = window.location.origin.replace(/\/$/, "");
         
         const { error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: redirectUrl
+                redirectTo: redirectUrl,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile'
+                }
             }
         });
         
@@ -463,9 +625,18 @@ function handleLogout() {
     if (supabaseClient) supabaseClient.auth.signOut();
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('dealerId');
+    localStorage.removeItem('shopName');
+    
+    // Clear global state to prevent data leaking to next login
+    Object.keys(globalState).forEach(key => {
+        if(Array.isArray(globalState[key])) globalState[key] = [];
+    });
+
     document.getElementById('main-app').style.display = 'none';
     if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
+    location.reload(); // Hard refresh to ensure clean slate
 }
 
 function renderSuperAdmin() {
@@ -578,28 +749,43 @@ function setupNavigation() {
         renderAnnouncement(announcement.msg);
     }
 
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            // 1. Update Active Nav
-            navItems.forEach(nav => nav.classList.remove('active'));
-            e.currentTarget.classList.add('active');
+    // Load dealer info into the More menu
+    const shopName = localStorage.getItem('shopName');
+    const dealerId = localStorage.getItem('dealerId');
+    const menuShop = document.getElementById('menu-shop-name');
+    const menuId = document.getElementById('menu-user-id');
+    if (menuShop && shopName) menuShop.innerText = shopName;
+    if (menuId && dealerId) menuId.innerText = 'ID: ' + String(dealerId).slice(-8).toUpperCase();
 
-            // 2. Handle Cloud Modal (No Page Switch)
+    // All nav buttons (visible + hidden for More menu)
+    const allNavButtons = document.querySelectorAll('[data-target]');
+    allNavButtons.forEach(item => {
+        item.addEventListener('click', (e) => {
             const target = e.currentTarget.getAttribute('data-target');
-            if (e.currentTarget.id === 'nav-btn-settings' || !target) {
-                openModal('settings-modal');
-                return;
+            if (!target) return;
+
+            // Highlight only the main bottom-nav items
+            const mainNavItems = document.querySelectorAll('.sidebar-nav .nav-item');
+            mainNavItems.forEach(nav => nav.classList.remove('active'));
+            // Only set active if it's a main nav button (not a hidden one)
+            if (e.currentTarget.closest('.sidebar-nav')) {
+                e.currentTarget.classList.add('active');
             }
-            
-            // 3. Update Active Page
+
+            // Switch page
             pages.forEach(page => page.classList.remove('active'));
             const targetPage = document.getElementById(target);
-            if(targetPage) targetPage.classList.add('active');
-            
-            // 4. Update Title
+            if (targetPage) targetPage.classList.add('active');
+
+            // Update title
             const titleSpan = e.currentTarget.querySelector('span');
-            if(pageTitleElement && titleSpan) pageTitleElement.innerText = titleSpan.innerText;
-            
+            const titles = {
+                dashboard: 'Dashboard', billing: 'New Invoice', inventory: 'Stock',
+                customers: 'Clients', expenses: 'Expenses', reports: 'Reports',
+                'dealer-memo': 'Dealer Memo', categories: 'Categories'
+            };
+            if (pageTitleElement) pageTitleElement.innerText = titleSpan ? titleSpan.innerText : (titles[target] || 'Dashboard');
+
             // Render respective page
             if (target === 'dashboard') loadDashboard();
             if (target === 'inventory') renderInventory();

@@ -249,6 +249,76 @@ body {
     transform: scale(0.9);
 }
 
+/* New Center Billing Action */
+.nav-item-center {
+    position: relative;
+    top: -24px;
+    background: var(--accent-blue);
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    border-radius: 50%;
+    box-shadow: 0 8px 20px rgba(10, 132, 255, 0.4);
+    color: white !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 4px;
+    border: 5px solid var(--card-bg);
+}
+
+.nav-item-center i {
+    font-size: 26px !important;
+    transform: none !important;
+}
+
+.nav-item-center span {
+    display: none;
+}
+
+.nav-item-center:active {
+    transform: scale(0.9) translateY(4px) !important;
+}
+
+/* More Menu Grid */
+.menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px !important;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+}
+
+.menu-item i {
+    font-size: 28px;
+}
+
+.menu-item p {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Header Enhancements */
+.header-icon {
+    position: relative;
+    font-size: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+    border: 2px solid var(--bg-color);
+}
+
 /* Beautiful Inputs */
 .form-row {
     display: flex;
