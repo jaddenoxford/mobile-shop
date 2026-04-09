@@ -296,7 +296,10 @@
                 <section id="inventory" class="page">
                     <div class="page-header">
                         <h2>Inventory Management</h2>
-                        <button class="btn primary-btn" onclick="openModal('add-product-modal')">Add Product</button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn secondary-btn" onclick="openModal('add-category-modal')" style="width:auto; padding: 10px 16px; font-size:13px;">+ Category</button>
+                            <button class="btn primary-btn" onclick="openModal('add-product-modal')" style="width:auto; padding: 10px 16px; font-size:13px;">+ Product</button>
+                        </div>
                     </div>
                     <div class="card table-card">
                         <table class="apple-table" id="inventory-table">
@@ -439,7 +442,13 @@
             <div class="modal-body">
                 <form id="add-product-form">
                     <div class="input-group"><label>Product Name *</label><input type="text" id="prod-name" required></div>
-                    <div class="input-group"><label>Category *</label><select id="prod-category" required></select></div>
+                    <div class="input-group">
+                        <label>Category *</label>
+                        <div style="display:flex; gap:8px;">
+                            <select id="prod-category" required style="flex:1;"></select>
+                            <button type="button" class="btn secondary-btn" onclick="openModal('add-category-modal')" style="width:auto; padding:0 15px;">+</button>
+                        </div>
+                    </div>
                     <div class="input-group"><label>Stock Quantity *</label><input type="number" id="prod-stock" min="1" required></div>
                     <div class="input-group"><label>Cost Price (₹) *</label><input type="number" id="prod-cp" min="0" required></div>
                     <div class="input-group"><label>Selling Price (₹) *</label><input type="number" id="prod-sp" min="0" required></div>
