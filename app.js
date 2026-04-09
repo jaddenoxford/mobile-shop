@@ -210,6 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 2.5 Init Global Settings & Themes
+    initGlobalSettings();
+
     // 3. Robust Auth State Management
     if (supabaseClient) {
         // Run manual check first as fallback
@@ -872,6 +875,90 @@ function markAllNotificationsRead() {
         </div>
     `;
     setTimeout(() => closeModal('notification-drawer'), 1500);
+}
+
+// --- Global Settings & Theme Engine ---
+let activeAppTheme = localStorage.getItem('app_active_theme') || 'theme-default';
+
+async function initGlobalSettings() {
+    try {
+        const settingsStr = localStorage.getItem('app_global_settings');
+        if(settingsStr) {
+            const settings = JSON.parse(settingsStr);
+            applyAppTheme(settings.theme);
+            applyFeatureToggles(settings.features);
+        } else {
+            applyAppTheme(activeAppTheme);
+        }
+        
+        if (supabaseClient) {
+            const { data, error } = await supabaseClient.from('app_global_settings').select('data').limit(1).single();
+            if (data && data.data) {
+                const cloudSettings = data.data;
+                applyAppTheme(cloudSettings.theme);
+                applyFeatureToggles(cloudSettings.features);
+                localStorage.setItem('app_global_settings', JSON.stringify(cloudSettings));
+                localStorage.setItem('app_active_theme', cloudSettings.theme);
+            }
+        }
+    } catch(e) { console.log("Global Settings Init skip:", e); }
+}
+
+function selectAppTheme(themeName) {
+    activeAppTheme = themeName;
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        const matches = opt.getAttribute('data-theme') === themeName;
+        opt.style.border = matches ? '2px solid #007aff' : '1px solid #ddd';
+        opt.classList.toggle('active', matches);
+    });
+}
+
+function toggleAppFeature(feature) {
+    console.log(`Feature ${feature} toggled locally.`);
+}
+
+async function saveGlobalSettings() {
+    const settings = {
+        theme: activeAppTheme,
+        features: {
+            memo: document.getElementById('ctrl-memo').checked,
+            expense: document.getElementById('ctrl-expense').checked,
+            cloud: document.getElementById('ctrl-cloud').checked
+        },
+        updatedAt: new Date().toISOString()
+    };
+    
+    try {
+        updateStatus('Applying Global Changes...', '#007aff');
+        localStorage.setItem('app_active_theme', activeAppTheme);
+        localStorage.setItem('app_global_settings', JSON.stringify(settings));
+        
+        applyAppTheme(activeAppTheme);
+        applyFeatureToggles(settings.features);
+
+        if (supabaseClient) {
+            // We assume a table named app_global_settings exists with 'id' and 'data' (JSONB)
+            await supabaseClient.from('app_global_settings').upsert({ id: 1, data: settings });
+        }
+        
+        alert("🎉 Global App Customization Applied Successfully!");
+    } catch(err) {
+        alert("Global Save (Cloud) issue: " + err.message + "\n(Saved locally instead)");
+    }
+}
+
+function applyAppTheme(theme) {
+    document.body.className = '';
+    document.body.classList.add(theme);
+}
+
+function applyFeatureToggles(features) {
+    if (!features) return;
+    const memoOptions = document.querySelectorAll('[data-target="dealer-memo"], [onclick*="dealer-memo"]');
+    memoOptions.forEach(opt => opt.style.display = features.memo ? '' : 'none');
+    
+    const expenseOptions = document.querySelectorAll('[data-target="expenses"], [onclick*="expenses"]');
+    expenseOptions.forEach(opt => opt.style.display = features.expense ? '' : 'none');
 }
 
 // --- Categories Module ---

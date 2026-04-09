@@ -144,9 +144,10 @@
         
         <div class="content-pages" style="display:block; padding: 16px;">
             <!-- Tabs for Super Admin -->
-            <div class="admin-tabs" style="display:flex; gap:10px; margin-bottom:20px;">
+            <div class="admin-tabs" style="display:flex; gap:10px; margin-bottom:20px; overflow-x:auto; padding-bottom:8px;">
                 <button class="tab-btn active" onclick="switchAdminPage('dealers')">Users</button>
                 <button class="tab-btn" onclick="switchAdminPage('revenue')">Revenue</button>
+                <button class="tab-btn" onclick="switchAdminPage('custom')">Customize App</button>
                 <button class="tab-btn" onclick="switchAdminPage('broadcast')">Alerts</button>
             </div>
 
@@ -180,15 +181,75 @@
                 </div>
             </div>
 
-            <!-- Page 2: Revenue Tracking -->
-            <div id="sa-page-revenue" class="sa-page" style="display:none;">
+            <!-- Page 4: App Customization -->
+            <div id="sa-page-custom" class="sa-page" style="display:none;">
                 <div class="card">
-                    <h3>Software Sales Log</h3>
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">Tracking payments from dealers for software licenses.</p>
-                    <div id="sa-revenue-list">
-                        <!-- Revenue entries -->
-                        <div style="text-align:center; padding:40px; color:#999;">Revenue module coming in next update.</div>
+                    <h3>App Themes & UI</h3>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:20px;">Choose the global theme for all Dealer apps.</p>
+                    
+                    <div class="theme-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:12px;">
+                        <div class="theme-option active" data-theme="theme-default" onclick="selectAppTheme('theme-default')" style="background:#f5f5f7; padding:12px; border-radius:12px; border:2px solid #007aff; cursor:pointer;">
+                            <div style="height:40px; background:#007aff; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Classic Apple</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-midnight" onclick="selectAppTheme('theme-midnight')" style="background:#000; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#1c1c1e; border-radius:8px; margin-bottom:8px; border:1px solid #333;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center; color:white;">Midnight</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-royal" onclick="selectAppTheme('theme-royal')" style="background:#fff9e6; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#d4af37; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Royal Gold</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-emerald" onclick="selectAppTheme('theme-emerald')" style="background:#f4fcf7; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#2ecc71; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Emerald</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-ocean" onclick="selectAppTheme('theme-ocean')" style="background:#f0f8ff; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#0077be; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Ocean</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-sunset" onclick="selectAppTheme('theme-sunset')" style="background:#fffaf0; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#ff4e50; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Sunset</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-cyber" onclick="selectAppTheme('theme-cyber')" style="background:#0d0221; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#ff00ff; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center; color:#00ffff;">Cyberpunk</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-rose" onclick="selectAppTheme('theme-rose')" style="background:#fff0f5; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#e91e63; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Rose</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-slate" onclick="selectAppTheme('theme-slate')" style="background:#f8fafc; padding:12px; border-radius:12px; border:1px solid #ddd; cursor:pointer;">
+                            <div style="height:40px; background:#475569; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Slate Blue</p>
+                        </div>
+                        <div class="theme-option" data-theme="theme-minimal" onclick="selectAppTheme('theme-minimal')" style="background:#ffffff; padding:12px; border-radius:12px; border:1px solid #000; cursor:pointer;">
+                            <div style="height:40px; background:#000000; border-radius:8px; margin-bottom:8px;"></div>
+                            <p style="font-size:12px; font-weight:700; text-align:center;">Minimalist</p>
+                        </div>
                     </div>
+                    
+                    <hr class="divider">
+                    
+                    <h3>Feature Controls</h3>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">Enable or Disable modules for all dealers.</p>
+                    <div style="display:grid; gap:12px;">
+                        <label style="display:flex; justify-content:space-between; align-items:center; background:#f1f1f3; padding:12px; border-radius:12px;">
+                            <span>Dealer Memo Module</span>
+                            <input type="checkbox" id="ctrl-memo" checked onchange="toggleAppFeature('memo')">
+                        </label>
+                        <label style="display:flex; justify-content:space-between; align-items:center; background:#f1f1f3; padding:12px; border-radius:12px;">
+                            <span>Expense Module</span>
+                            <input type="checkbox" id="ctrl-expense" checked onchange="toggleAppFeature('expense')">
+                        </label>
+                        <label style="display:flex; justify-content:space-between; align-items:center; background:#f1f1f3; padding:12px; border-radius:12px;">
+                            <span>Cloud Sync Feature</span>
+                            <input type="checkbox" id="ctrl-cloud" checked onchange="toggleAppFeature('cloud')">
+                        </label>
+                    </div>
+                    
+                    <button class="btn primary-btn" onclick="saveGlobalSettings()" style="margin-top:24px;">Apply Global Changes</button>
                 </div>
             </div>
 
