@@ -767,7 +767,7 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
     if (currentBillItems.length === 0) return alert("Add items to bill");
     
     const custName = document.getElementById('bill-customer-name').value;
-    const custPhone = document.getElementById('bill-customer-phone').value;
+    const custPhone = document.getElementById('bill-customer-phone').value || 'Not provided';
     
     if(!custName) return alert("Customer name is required");
     
@@ -788,6 +788,8 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
         customer: custName,
         phone: custPhone,
         items: [...currentBillItems],
+        subtotal,
+        discount: (subtotal * discount / 100),
         total,
         profit
     };
@@ -803,7 +805,6 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
         const pIndex = prods.findIndex(p => p.id == item.id);
         if (pIndex > -1) {
             prods[pIndex].stock -= item.qty;
-            // Remove IMEI if scanned
             if (item.scannedImei && prods[pIndex].imeis) {
                 prods[pIndex].imeis = prods[pIndex].imeis.filter(i => i !== item.scannedImei);
             }
@@ -814,7 +815,7 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
     // Update Customers
     const customers = DB_ACTIONS.get('customers');
     let custInfo = customers.find(c => c.phone === custPhone);
-    if(custInfo) {
+    if(custInfo && custPhone !== 'Not provided') {
         custInfo.totalPurchases += total;
         custInfo.lastVisit = newBill.date;
     } else {
@@ -827,7 +828,8 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
     }
     DB_ACTIONS.set('customers', customers);
     
-    alert(`Invoice ${newBill.id} generated successfully!`);
+    // Show Premium Invoice
+    showInvoice(newBill);
     
     // Reset Bill
     currentBillItems = [];
@@ -836,6 +838,35 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
     document.getElementById('bill-discount').value = '0';
     initBilling();
 });
+
+function showInvoice(bill) {
+    document.getElementById('inv-view-customer').innerText = bill.customer;
+    document.getElementById('inv-view-phone').innerText = bill.phone;
+    document.getElementById('inv-view-id').innerText = bill.id;
+    document.getElementById('inv-view-date').innerText = new Date(bill.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    
+    const tbody = document.getElementById('inv-view-items');
+    tbody.innerHTML = '';
+    
+    bill.items.forEach(item => {
+        tbody.innerHTML += `
+            <tr style="border-bottom: 0.5px solid #f2f2f2;">
+                <td style="padding: 12px 0;">
+                    <div style="font-weight: 600;">${item.name}</div>
+                    ${item.scannedImei ? `<div style="font-size: 11px; color: #0066cc;">IMEI: ${item.scannedImei}</div>` : ''}
+                    <div style="font-size: 11px; color: #86868b;">Qty: ${item.qty} × ₹${item.sp}</div>
+                </td>
+                <td style="text-align: right; padding: 12px 0; font-weight: 600;">₹${(item.qty * item.sp).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+    
+    document.getElementById('inv-view-subtotal').innerText = `₹${bill.subtotal.toFixed(2)}`;
+    document.getElementById('inv-view-discount').innerText = `-₹${bill.discount.toFixed(2)}`;
+    document.getElementById('inv-view-total').innerText = `₹${bill.total.toFixed(2)}`;
+    
+    openModal('invoice-view-modal');
+}
 
 // --- Dashboard & Reports ---
 function loadDashboard() {

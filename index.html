@@ -585,6 +585,78 @@
         </div>
     </div>
 
+    <!-- Premium Invoice View Modal -->
+    <div id="invoice-view-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 450px; background: #fff; border-radius: 24px; padding: 0; overflow: hidden; margin: auto;">
+            <div id="printable-invoice" style="padding: 30px; background: #ffffff; color: #1d1d1f; font-family: -apple-system, sans-serif;">
+                <!-- Header -->
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <div style="width: 60px; height: 60px; background: #000; color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 12px;">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                    </div>
+                    <h2 style="font-size: 24px; font-weight: 700; margin: 0;">MobiStore</h2>
+                    <p style="font-size: 12px; color: #86868b; margin: 4px 0;">Premium Mobile & Accessories</p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #f2f2f2; margin: 20px 0;">
+
+                <!-- Invoice Meta -->
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px;">
+                    <div>
+                        <p style="color: #86868b; margin-bottom: 4px;">CUSTOMER</p>
+                        <p id="inv-view-customer" style="font-weight: 600;"></p>
+                        <p id="inv-view-phone" style="color: #444;"></p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="color: #86868b; margin-bottom: 4px;">INVOICE</p>
+                        <p id="inv-view-id" style="font-weight: 600;"></p>
+                        <p id="inv-view-date" style="color: #444;"></p>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+                    <thead style="border-bottom: 1px solid #f2f2f2;">
+                        <tr>
+                            <th style="text-align: left; padding: 10px 0; color: #86868b; font-weight: 500;">Description</th>
+                            <th style="text-align: right; padding: 10px 0; color: #86868b; font-weight: 500;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inv-view-items">
+                        <!-- Items injected here -->
+                    </tbody>
+                </table>
+
+                <!-- Totals -->
+                <div style="border-top: 1px solid #f2f2f2; padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                        <span style="color: #86868b;">Subtotal</span>
+                        <span id="inv-view-subtotal">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
+                        <span style="color: #86868b;">Discount</span>
+                        <span id="inv-view-discount" style="color: #34c759;">-₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 700;">
+                        <span>Total Paid</span>
+                        <span id="inv-view-total">₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #ddd;">
+                    <p style="font-size: 11px; color: #86868b;">Thank you for your purchase!</p>
+                    <p style="font-size: 10px; color: #a1a1a6; margin-top: 4px;">Goods once sold will not be returned.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="padding: 20px; display: flex; gap: 10px; background: #fbfbfd; border-top: 1px solid #f2f2f2;">
+                <button class="btn secondary-btn" onclick="closeModal('invoice-view-modal')" style="flex: 1;">Close</button>
+                <button class="btn primary-btn" onclick="window.print()" style="flex: 1;"><i class="fa-solid fa-print"></i> Print / Save</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
