@@ -132,6 +132,26 @@ const DB_ACTIONS = {
                 globalState.categories = [{ id: 1, name: 'Smartphones', dealerId: 'DLR_DEMO' }, { id: 2, name: 'Accessories', dealerId: 'DLR_DEMO' }];
             }
         }
+
+        // --- FIX: Ensure Demo Dealer always exists in globalState ---
+        const demoExists = globalState.platform_dealers.find(d => d.username === 'mobile');
+        if (!demoExists) {
+            globalState.platform_dealers.push({
+                id: 'DLR_DEMO', 
+                username: 'mobile', 
+                pin: '123456', 
+                shopName: 'Demo Mobile Shop', 
+                status: 'Active', 
+                date: new Date().toISOString()
+            });
+            // Add sample categories for demo
+            if (globalState.categories.length === 0) {
+                globalState.categories.push(
+                    { id: 101, name: 'Smartphones', dealerId: 'DLR_DEMO' },
+                    { id: 102, name: 'Accessories', dealerId: 'DLR_DEMO' }
+                );
+            }
+        }
         
         // Refresh UI if logged in
         const type = localStorage.getItem('isLoggedIn');
