@@ -8,7 +8,12 @@ try {
     const lib = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
     if (lib && supabaseKey.startsWith('eyJ')) {
         supabaseClient = lib.createClient(supabaseUrl, supabaseKey);
-        console.log("Supabase Client initialized successfully.");
+        console.log("Supabase Client initialized.");
+        
+        // Immediate Hash Check for OAuth Redirect
+        if (window.location.hash.includes('access_token=')) {
+            console.log("OAuth Redirect detected, waiting for session...");
+        }
     } else {
         console.warn("Supabase library not found. Running offline mode.");
     }
@@ -33,11 +38,37 @@ let pages = [];
 let pageTitleElement = null;
 
 function updateStatus(text, color) {
+    console.log(`Status: ${text}`);
     const el = document.getElementById('connection-status');
     if(el) {
         el.innerText = text;
         el.style.background = color || 'rgba(0,0,0,0.5)';
         el.style.display = 'block';
+    }
+}
+
+// Manual Token Handler (Fallback)
+async function checkManualHash() {
+    const hashStr = window.location.hash.replace(/^#/, '');
+    if (!hashStr.includes('access_token=')) return;
+    
+    console.log("Manual extraction from hash:", hashStr.substring(0, 20) + "...");
+    const params = new URLSearchParams(hashStr);
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+
+    if (access_token && refresh_token && supabaseClient) {
+        try {
+            updateStatus('Resolving Login...', '#007aff');
+            const { data, error } = await supabaseClient.auth.setSession({
+                access_token,
+                refresh_token
+            });
+            if (error) throw error;
+            if (data.session) console.log("Manual sync completed.");
+        } catch (e) {
+            console.error("Manual Auth Error:", e);
+        }
     }
 }
 
@@ -102,6 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Immediate UI Launch
     const loggedType = localStorage.getItem('isLoggedIn');
+    const isReturningFromAuth = window.location.hash.includes('access_token=');
+
     if(loggedType === 'admin') {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('superadmin-app').style.display = 'flex';
@@ -114,16 +147,90 @@ document.addEventListener('DOMContentLoaded', () => {
         updateForms();
     } else {
         document.getElementById('login-screen').style.display = 'flex';
+        if (isReturningFromAuth) {
+            updateStatus('Authenticating...', '#007aff');
+            document.querySelector('.login-wrapper').innerHTML = `
+                <div style="text-align:center; padding: 40px 20px;">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 40px; color: var(--accent-blue); margin-bottom: 20px;"></i>
+                    <h2 style="font-weight: 700; color: var(--text-primary);">Verifying Account</h2>
+                    <p style="color: var(--text-secondary); margin-top: 10px;">Completing your secure login...</p>
+                </div>
+            `;
+        }
     }
 
-    // 3. Auth Redirect Listener (For Google Login)
+    // 3. Robust Auth State Management
     if (supabaseClient) {
+        // Run manual check first as fallback
+        checkManualHash();
+
+        // Immediate check for existing session
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) handleAuthSession(session, 'INITIAL');
+        });
+
+        // Listen for auth changes
         supabaseClient.auth.onAuthStateChange((event, session) => {
-            if (session && (event === 'SIGNED_IN')) {
-                localStorage.setItem('isLoggedIn', 'dealer');
-                location.reload(); // Refresh to enter app state
+            console.log("Supabase Auth Event:", event);
+            if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED')) {
+                handleAuthSession(session, event);
             }
         });
+    }
+
+    async function handleAuthSession(session, event) {
+        if (!session) return;
+        
+        const user = session.user;
+        const metadata = user.user_metadata || {};
+        const isCurrentlyLoggedIn = localStorage.getItem('isLoggedIn') === 'dealer';
+        const isDashboardVisible = document.getElementById('main-app').style.display === 'flex';
+
+        // STOP THE LOOP: If already logged in and showing dashboard, don't reload
+        if (isCurrentlyLoggedIn && isDashboardVisible && event !== 'SIGNED_OUT') {
+            console.log("Session already active, skipping reload.");
+            return;
+        }
+        
+        console.log("Auth Session processing started for event:", event);
+        
+        // Mark as logged in immediately
+        localStorage.setItem('isLoggedIn', 'dealer');
+        localStorage.setItem('userEmail', user.email);
+        
+        // Remove hash from URL
+        if (window.location.hash) {
+            window.history.replaceState(null, null, window.location.pathname);
+        }
+
+        // Auto-register dealer
+        try {
+            const dealers = DB_ACTIONS.get('platform_dealers');
+            const exists = dealers.find(d => d.email === user.email);
+            
+            if (!exists) {
+                const newDealer = {
+                    id: user.id || Date.now(),
+                    name: metadata.full_name || metadata.name || user.email.split('@')[0],
+                    email: user.email,
+                    phone: user.phone || 'Google Auth',
+                    shopName: metadata.full_name ? `${metadata.full_name}'s Shop` : 'New Business',
+                    status: 'Active',
+                    date: new Date().toISOString()
+                };
+                dealers.push(newDealer);
+                await DB_ACTIONS.set('platform_dealers', dealers);
+            }
+        } catch (e) {
+            console.error("Registration Error:", e);
+        }
+
+        // Final UI refresh ONLY if we were on the login screen
+        if (document.getElementById('login-screen').style.display !== 'none') {
+            setTimeout(() => {
+                location.reload();
+            }, 300);
+        }
     }
 
     // 4. Database Initialization (Background)
@@ -191,15 +298,17 @@ async function handleGoogleLogin() {
     
     try {
         updateStatus('Connecting Google...', '#007aff');
-        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        // Ensure redirect URL matches Supabase whitelist exactly (no trailing slash)
+        const redirectUrl = window.location.origin.replace(/\/$/, "");
+        
+        const { error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.origin
+                redirectTo: redirectUrl
             }
         });
         
         if (error) throw error;
-        // Supabase will redirect to Google login page
     } catch (e) {
         alert("Google Error: " + e.message);
         updateStatus('Google Failed', '#ff3b30');
@@ -245,7 +354,8 @@ async function handleForgotPasswordSubmit(e) {
 
 function handleLogout() {
     if (supabaseClient) supabaseClient.auth.signOut();
-    localStorage.setItem('isLoggedIn', 'false');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userEmail');
     document.getElementById('main-app').style.display = 'none';
     if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
