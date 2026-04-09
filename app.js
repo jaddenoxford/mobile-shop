@@ -84,8 +84,15 @@ const DB_ACTIONS = {
         try {
             // For categories, products, etc. ensure we include dealerId
             if (key !== 'platform_dealers') {
-                const dataWithId = data.map(item => ({ ...item, dealerId: dealerId || 'system' }));
-                await supabaseClient.from(key).upsert(dataWithId);
+                const dataWithId = data.map(item => ({ 
+                    ...item, 
+                    dealerId: dealerId || 'system',
+                    updatedAt: new Date().toISOString()
+                }));
+                // We attempt upsert but don't let it crash the app if columns are missing
+                supabaseClient.from(key).upsert(dataWithId).then(({error}) => {
+                    if(error) console.warn("Supabase Sync Error (likely missing dealerId column):", error);
+                });
             } else {
                 await supabaseClient.from(key).upsert(data);
             }
@@ -573,24 +580,25 @@ function setupNavigation() {
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            const target = e.currentTarget.getAttribute('data-target');
-            
-            // Update Active Nav
+            // 1. Update Active Nav
             navItems.forEach(nav => nav.classList.remove('active'));
             e.currentTarget.classList.add('active');
 
-            // NEW: Handle Cloud Settings Modal
-            if (e.currentTarget.id === 'nav-btn-settings') {
+            // 2. Handle Cloud Modal (No Page Switch)
+            const target = e.currentTarget.getAttribute('data-target');
+            if (e.currentTarget.id === 'nav-btn-settings' || !target) {
                 openModal('settings-modal');
                 return;
             }
             
-            // Update Active Page
+            // 3. Update Active Page
             pages.forEach(page => page.classList.remove('active'));
-            document.getElementById(target).classList.add('active');
+            const targetPage = document.getElementById(target);
+            if(targetPage) targetPage.classList.add('active');
             
-            // Update Title
-            if(pageTitleElement) pageTitleElement.innerText = e.currentTarget.querySelector('span').innerText;
+            // 4. Update Title
+            const titleSpan = e.currentTarget.querySelector('span');
+            if(pageTitleElement && titleSpan) pageTitleElement.innerText = titleSpan.innerText;
             
             // Render respective page
             if (target === 'dashboard') loadDashboard();
