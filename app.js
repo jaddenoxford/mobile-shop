@@ -118,6 +118,19 @@ const DB_ACTIONS = {
                 const local = localStorage.getItem(t);
                 if (local) globalState[t] = JSON.parse(local);
             });
+
+            // Add demo dealer only if no dealers exist
+            if (globalState.platform_dealers.length === 0) {
+                globalState.platform_dealers = [{ 
+                    id: 'DLR_DEMO', 
+                    username: 'mobile', 
+                    pin: '123456', 
+                    shopName: 'Mobile Hero Shop', 
+                    status: 'Active', 
+                    date: new Date().toISOString() 
+                }];
+                globalState.categories = [{ id: 1, name: 'Smartphones', dealerId: 'DLR_DEMO' }, { id: 2, name: 'Accessories', dealerId: 'DLR_DEMO' }];
+            }
         }
         
         // Refresh UI if logged in
