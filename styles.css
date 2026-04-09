@@ -262,29 +262,23 @@ body {
 /* New Center Billing Action */
 .nav-item-center {
     position: relative;
-    top: -18px; /* Reduced to prevent overlap */
+    top: -12px; /* Subtle lift to prevent overlap issues */
     background: var(--accent-blue);
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
     border-radius: 50%;
-    box-shadow: 0 6px 16px rgba(10, 132, 255, 0.35);
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
     color: white !important;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    line-height: 1; /* Ensures icon alignment */
-    margin: 0 4px;
-    border: 5px solid var(--bg-color); /* Matches app background for seamless cutout look */
+    display: grid;
+    place-items: center;
+    margin: 0 10px;
+    border: 4px solid var(--card-bg); /* Use card-bg for a sharp inner ring effect */
 }
 
 .nav-item-center i {
-    font-size: 26px !important;
-    transform: none !important;
-    display: block;
-    width: auto;
-    height: auto;
-    margin: 0;
+    font-size: 24px !important;
+    margin: 0 !important;
 }
 
 .nav-item-center span {
