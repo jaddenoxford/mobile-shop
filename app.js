@@ -545,6 +545,12 @@ function setupNavigation() {
             // Update Active Nav
             navItems.forEach(nav => nav.classList.remove('active'));
             e.currentTarget.classList.add('active');
+
+            // NEW: Handle Cloud Settings Modal
+            if (e.currentTarget.id === 'nav-btn-settings') {
+                openModal('settings-modal');
+                return;
+            }
             
             // Update Active Page
             pages.forEach(page => page.classList.remove('active'));
@@ -933,6 +939,52 @@ function showInvoice(bill) {
     document.getElementById('inv-view-total').innerText = `₹${bill.total.toFixed(2)}`;
     
     openModal('invoice-view-modal');
+}
+
+async function shareInvoiceAsImage() {
+    const invoiceEl = document.getElementById('printable-invoice');
+    const invId = document.getElementById('inv-view-id').innerText;
+    
+    try {
+        updateStatus('Generating Image...', '#007aff');
+        const canvas = await html2canvas(invoiceEl, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true
+        });
+        
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], `Invoice_${invId}.png`, { type: 'image/png' });
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: `Invoice ${invId}`,
+                        text: 'Shared from MobiStore'
+                    });
+                } catch (err) {
+                    downloadCanvas(canvas, invId);
+                }
+            } else {
+                downloadCanvas(canvas, invId);
+            }
+            updateStatus('Cloud Sync Active', '#34c759');
+        }, 'image/png');
+    } catch (e) {
+        console.error("Image Share Error:", e);
+        alert("Failed to generate image.");
+    }
+}
+
+function downloadCanvas(canvas, id) {
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice_${id}.png`;
+    a.click();
+    alert("Invoice saved to your downloads.");
 }
 
 // --- Dashboard & Reports ---
