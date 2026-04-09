@@ -12,6 +12,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
     <!-- Connection Status Indicator -->
@@ -268,7 +269,10 @@
                                     <label>Quantity</label>
                                     <input type="number" id="bill-product-qty" value="1" min="1">
                                 </div>
-                                <button id="btn-add-to-bill" class="btn primary-btn" style="margin-top: 24px;">Add</button>
+                                <div style="display:flex; gap:8px; margin-top:24px;">
+                                    <button id="btn-add-to-bill" class="btn primary-btn" style="flex:2;">Add</button>
+                                    <button id="btn-open-scanner" class="btn secondary-btn" style="flex:1;"><i class="fa-solid fa-barcode"></i> Scan</button>
+                                </div>
                             </div>
                             <div class="table-container invoice-table-container">
                                 <table class="apple-table">
@@ -439,6 +443,17 @@
                     <div class="input-group"><label>Stock Quantity *</label><input type="number" id="prod-stock" min="1" required></div>
                     <div class="input-group"><label>Cost Price (₹) *</label><input type="number" id="prod-cp" min="0" required></div>
                     <div class="input-group"><label>Selling Price (₹) *</label><input type="number" id="prod-sp" min="0" required></div>
+                    <div class="input-group" style="flex-direction:row; align-items:center; gap:10px; margin-top:10px;">
+                        <input type="checkbox" id="prod-tracked" style="width:20px; height:20px;">
+                        <label style="margin:0;">Track by IMEI / Serial</label>
+                    </div>
+                    <div id="imei-entry-section" style="display:none; margin-top:15px;">
+                        <div class="input-group">
+                            <label>IMEI List (One per line or scan)</label>
+                            <textarea id="prod-imeis" placeholder="Enter IMEIs here..." style="width:100%; height:100px; padding:12px; border-radius:12px; border:1px solid #ddd; font-family:monospace; font-size:12px;"></textarea>
+                        </div>
+                        <button type="button" class="btn secondary-btn" onclick="startImeiScan()">Scan to Add</button>
+                    </div>
                     <div style="margin-top:20px; text-align:right;">
                         <button type="submit" class="btn primary-btn">Save Product</button>
                     </div>
@@ -540,6 +555,22 @@
                 </div>
                 <div style="margin-top:20px; text-align:right;">
                     <button type="button" class="btn primary-btn" onclick="saveMemoStatus()">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Scanner Modal -->
+    <div id="scanner-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 500px; margin: auto; border-radius: 20px;">
+            <div class="modal-header">
+                <h3>Barcode Scanner</h3>
+                <button class="close-btn" onclick="stopScanner()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; background: #000;"></div>
+                <div style="text-align:center; padding:15px; color:#666; font-size:13px;">
+                    Position the barcode inside the frame to scan.
                 </div>
             </div>
         </div>

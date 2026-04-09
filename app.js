@@ -535,20 +535,40 @@ function renderCategories() {
 }
 
 // --- Inventory Module ---
-document.getElementById('add-product-form').addEventListener('submit', (e) => {
+document.getElementById('add-product-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const isTracked = document.getElementById('prod-tracked').checked;
+    const imeiText = document.getElementById('prod-imeis').value || '';
+    const imeis = imeiText.split('\n').map(i => i.trim()).filter(i => i.length > 0);
+
+    const prods = DB_ACTIONS.get('products');
+    
+    // Check for duplicate IMEIs across all products
+    if (isTracked) {
+        const allExistingImeis = prods.flatMap(p => p.imeis || []);
+        for (const imei of imeis) {
+            if (allExistingImeis.includes(imei)) {
+                return alert(`IMEI ${imei} already exists in inventory!`);
+            }
+        }
+    }
+
     const prod = {
         id: Date.now(),
         name: document.getElementById('prod-name').value,
         catId: document.getElementById('prod-category').value,
-        stock: parseInt(document.getElementById('prod-stock').value),
+        stock: isTracked ? imeis.length : parseInt(document.getElementById('prod-stock').value),
         cp: parseFloat(document.getElementById('prod-cp').value),
         sp: parseFloat(document.getElementById('prod-sp').value),
+        isTracked: isTracked,
+        imeis: imeis
     };
-    const prods = DB_ACTIONS.get('products');
+
     prods.push(prod);
-    DB_ACTIONS.set('products', prods);
+    await DB_ACTIONS.set('products', prods);
+    
     document.getElementById('add-product-form').reset();
+    document.getElementById('imei-entry-section').style.display = 'none';
     closeModal('add-product-modal');
     renderInventory();
 });
@@ -602,6 +622,79 @@ function updateForms() {
     }
 }
 
+// --- IMEI & Scanner Module ---
+let html5QrcodeScanner = null;
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(e => console.error(e));
+        html5QrcodeScanner = null;
+    }
+    closeModal('scanner-modal');
+}
+
+function startScanner(onSuccess) {
+    if (html5QrcodeScanner) stopScanner();
+    openModal('scanner-modal');
+    
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 15, 
+        qrbox: { width: 250, height: 150 },
+        aspectRatio: 1.0
+    });
+    
+    html5QrcodeScanner.render((decodedText) => {
+        // Haptic feedback if available
+        if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(100);
+        onSuccess(decodedText);
+        stopScanner();
+    }, (err) => {
+        // silent error for frame noise
+    });
+}
+
+// Toggle IMEI section in Add Product modal
+document.getElementById('prod-tracked')?.addEventListener('change', (e) => {
+    document.getElementById('imei-entry-section').style.display = e.target.checked ? 'block' : 'none';
+    if(e.target.checked) document.getElementById('prod-stock').value = 0;
+});
+
+function startImeiScan() {
+    startScanner((code) => {
+        const textarea = document.getElementById('prod-imeis');
+        const existing = textarea.value.trim();
+        textarea.value = existing ? existing + '\n' + code : code;
+        // Update stock count automatically based on lines
+        const lines = textarea.value.split('\n').filter(l => l.trim().length > 0);
+        document.getElementById('prod-stock').value = lines.length;
+    });
+}
+
+// Quick Scan in Billing
+document.getElementById('btn-open-scanner')?.addEventListener('click', () => {
+    startScanner((code) => {
+        const products = DB_ACTIONS.get('products');
+        // Find product that has this IMEI in its list
+        const product = products.find(p => p.imeis && p.imeis.includes(code.trim()));
+        
+        if (!product) return alert(`IMEI ${code} not found in stock!`);
+        if (product.stock < 1) return alert(`Product ${product.name} is out of stock!`);
+
+        // Add to bill
+        const existingItem = currentBillItems.find(i => i.id == product.id && i.scannedImei === code);
+        if (existingItem) return alert("This specific unit is already in the bill.");
+
+        currentBillItems.push({
+            ...product,
+            qty: 1,
+            scannedImei: code
+        });
+        
+        renderBillItems();
+    });
+});
+
+
 document.getElementById('btn-add-to-bill').addEventListener('click', () => {
     const prodId = document.getElementById('bill-product-select').value;
     const qty = parseInt(document.getElementById('bill-product-qty').value);
@@ -636,7 +729,10 @@ function renderBillItems() {
         subtotal += total;
         tbody.innerHTML += `
             <tr>
-                <td><strong>${item.name}</strong></td>
+                <td>
+                    <strong>${item.name}</strong>
+                    ${item.scannedImei ? `<br><small style="color:#0066cc;">IMEI: ${item.scannedImei}</small>` : ''}
+                </td>
                 <td>${item.qty}</td>
                 <td>₹${item.sp}</td>
                 <td>₹${total}</td>
@@ -705,7 +801,13 @@ document.getElementById('btn-generate-bill').addEventListener('click', () => {
     const prods = DB_ACTIONS.get('products');
     currentBillItems.forEach(item => {
         const pIndex = prods.findIndex(p => p.id == item.id);
-        prods[pIndex].stock -= item.qty;
+        if (pIndex > -1) {
+            prods[pIndex].stock -= item.qty;
+            // Remove IMEI if scanned
+            if (item.scannedImei && prods[pIndex].imeis) {
+                prods[pIndex].imeis = prods[pIndex].imeis.filter(i => i !== item.scannedImei);
+            }
+        }
     });
     DB_ACTIONS.set('products', prods);
     
