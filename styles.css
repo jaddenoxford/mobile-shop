@@ -252,19 +252,19 @@ body {
 /* New Center Billing Action */
 .nav-item-center {
     position: relative;
-    top: -24px;
+    top: -18px; /* Reduced to prevent overlap */
     background: var(--accent-blue);
     width: 60px;
     height: 60px;
     min-width: 60px;
     border-radius: 50%;
-    box-shadow: 0 8px 20px rgba(10, 132, 255, 0.4);
+    box-shadow: 0 6px 16px rgba(10, 132, 255, 0.35);
     color: white !important;
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 0 4px;
-    border: 5px solid var(--card-bg);
+    border: 5px solid var(--bg-color); /* Matches app background for seamless cutout look */
 }
 
 .nav-item-center i {
@@ -277,7 +277,7 @@ body {
 }
 
 .nav-item-center:active {
-    transform: scale(0.9) translateY(4px) !important;
+    transform: scale(0.9) translateY(2px) !important;
 }
 
 /* More Menu Grid */
@@ -496,9 +496,10 @@ select {
 }
 
 .apple-table th, .apple-table td {
-    padding: 16px 20px;
+    padding: 14px 18px;
     text-align: left;
     border-bottom: 0.5px solid var(--border-color);
+    white-space: nowrap; /* Prevents text breaking, forces horizontal slide as requested */
 }
 
 .apple-table th {

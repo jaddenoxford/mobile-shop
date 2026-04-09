@@ -210,16 +210,16 @@
         <main class="main-content">
             <header class="top-header glass">
                 <div style="display: flex; flex-direction: column;">
-                    <h1 id="page-title" style="font-size: 20px;">Dashboard</h1>
-                    <div id="connection-status-pill" style="font-size: 9px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                    <h1 id="page-title" style="font-size: 18px;">Your Shop</h1>
+                    <div id="connection-status-pill" style="font-size: 9px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin-top: 1px;">
                         <span class="status-dot" style="width: 6px; height: 6px; background: #86868b; border-radius: 50%;"></span>
                         <span id="connection-status-text">Connecting...</span>
                     </div>
                 </div>
-                <div style="display:flex; gap:16px; align-items:center;">
-                    <div class="header-icon" title="Notifications" onclick="alert('No new notifications')">
+                <div style="display:flex; gap:14px; align-items:center;">
+                    <div class="header-icon" title="Notifications" onclick="openModal('notification-drawer')">
                         <i class="fa-solid fa-bell"></i>
-                        <span class="notification-badge"></span>
+                        <span class="notification-badge" id="bell-badge"></span>
                     </div>
                     <button type="button" onclick="handleLogout()" title="Logout" style="background: transparent; border: none; font-size: 22px; color: var(--danger); cursor: pointer; padding: 4px; border-radius: 50%; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.9)';" onmouseup="this.style.transform='scale(1)';">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -754,6 +754,31 @@
         <button data-target="expenses"></button>
         <button data-target="reports"></button>
         <button data-target="dealer-memo"></button>
+    </div>
+
+    <!-- Notification Drawer (Professional) -->
+    <div id="notification-drawer" class="modal">
+        <div class="modal-content glass" style="border-radius: 32px 32px 0 0; max-height: 80%;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="margin:0;">Notifications</h3>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Stay updated with your shop activity</p>
+                </div>
+                <button class="close-btn" onclick="closeModal('notification-drawer')">&times;</button>
+            </div>
+            <div class="modal-body" id="notification-body">
+                <div style="text-align:center; padding: 40px 20px;">
+                    <div style="width:64px; height:64px; background:#f1f1f3; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; color:#c7c7cc; font-size:24px;">
+                        <i class="fa-solid fa-bell-slash"></i>
+                    </div>
+                    <h4 style="color:var(--text-primary);">All caught up!</h4>
+                    <p style="color:var(--text-secondary); font-size:13px; margin-top:8px;">No new alerts for you right now.</p>
+                </div>
+            </div>
+            <div style="padding: 16px; border-top: 0.5px solid var(--border-color);">
+                <button class="btn secondary-btn" onclick="markAllNotificationsRead()" style="width:100%; border-radius:12px; font-size:14px;">Mark all as read</button>
+            </div>
+        </div>
     </div>
 
     <!-- Backup & Cloud Settings Modal -->

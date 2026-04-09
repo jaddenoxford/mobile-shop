@@ -778,13 +778,15 @@ function setupNavigation() {
             if (targetPage) targetPage.classList.add('active');
 
             // Update title
+            const shopName = localStorage.getItem('shopName') || 'Your Shop';
             const titleSpan = e.currentTarget.querySelector('span');
             const titles = {
-                dashboard: 'Dashboard', billing: 'New Invoice', inventory: 'Stock',
+                dashboard: shopName, 
+                billing: 'New Invoice', inventory: 'Stock',
                 customers: 'Clients', expenses: 'Expenses', reports: 'Reports',
                 'dealer-memo': 'Dealer Memo', categories: 'Categories'
             };
-            if (pageTitleElement) pageTitleElement.innerText = titleSpan ? titleSpan.innerText : (titles[target] || 'Dashboard');
+            if (pageTitleElement) pageTitleElement.innerText = titleSpan ? titleSpan.innerText : (titles[target] || shopName);
 
             // Render respective page
             if (target === 'dashboard') loadDashboard();
@@ -805,6 +807,23 @@ function openModal(id) {
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('show');
+}
+
+// Notification Helpers
+function markAllNotificationsRead() {
+    const badge = document.getElementById('bell-badge');
+    if (badge) badge.style.display = 'none';
+    
+    document.getElementById('notification-body').innerHTML = `
+        <div style="text-align:center; padding: 40px 20px;">
+            <div style="width:64px; height:64px; background:#f1f1f3; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; color:#c7c7cc; font-size:24px;">
+                <i class="fa-solid fa-check-double" style="color:var(--success);"></i>
+            </div>
+            <h4 style="color:var(--text-primary);">All Read</h4>
+            <p style="color:var(--text-secondary); font-size:13px; margin-top:8px;">Everything is up to date.</p>
+        </div>
+    `;
+    setTimeout(() => closeModal('notification-drawer'), 1500);
 }
 
 // --- Categories Module ---
