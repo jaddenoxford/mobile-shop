@@ -727,8 +727,12 @@
                         <i class="fa-solid fa-handshake" style="color:#5856d6;"></i>
                         <p>Dealer Memo</p>
                     </div>
+                    <div class="menu-item card" onclick="closeModal('more-menu-modal'); openModal('my-account-modal')">
+                        <i class="fa-solid fa-user-gear" style="color:#007aff;"></i>
+                        <p>My Account</p>
+                    </div>
                     <div class="menu-item card" onclick="closeModal('more-menu-modal'); openModal('settings-modal')">
-                        <i class="fa-solid fa-cloud" style="color:var(--accent-blue);"></i>
+                        <i class="fa-solid fa-cloud" style="color:#5856d6;"></i>
                         <p>Cloud & Sync</p>
                     </div>
                 </div>
@@ -745,6 +749,55 @@
                     </div>
                     <button class="btn secondary-btn" onclick="handleLogout()" style="width:auto; padding:8px 12px; font-size:12px; color:var(--danger);">Exit</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Account Modal (Editable Profile) -->
+    <div id="my-account-modal" class="modal">
+        <div class="modal-content glass" style="border-radius: 32px 32px 0 0; max-height: 90%;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="margin:0;">My Account</h3>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Manage your profile and security</p>
+                </div>
+                <button class="close-btn" onclick="closeModal('my-account-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="account-update-form" onsubmit="handleAccountUpdate(event)">
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <div class="input-group">
+                            <label>Shop Name</label>
+                            <input type="text" id="acc-shop-name" placeholder="Your Shop name" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Username</label>
+                            <input type="text" id="acc-username" placeholder="Login username" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Mobile Number</label>
+                            <input type="tel" id="acc-phone" placeholder="Contact number" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Email Address</label>
+                            <input type="email" id="acc-email" placeholder="Recovery email" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Passcode (6-digit PIN)</label>
+                            <input type="password" id="acc-pin" maxlength="6" placeholder="Change PIN">
+                        </div>
+                        
+                        <div style="background: #f1f1f3; padding: 16px; border-radius: 16px; margin-bottom: 8px;">
+                            <p style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Account Security</p>
+                            <a href="#" onclick="handleForgotPassword(); closeModal('my-account-modal'); return false;" style="font-size:13px; color:var(--accent-blue); text-decoration:none; display:block; margin-bottom:10px;">
+                                <i class="fa-solid fa-key" style="margin-right:8px;"></i> Forgot ID or Password?
+                            </a>
+                            <p style="font-size:11px; color:#86868b;">Need help? Contact support via Cloud menu.</p>
+                        </div>
+                        
+                        <button type="submit" class="btn primary-btn">Save Account Details</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

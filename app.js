@@ -804,9 +804,57 @@ function setupNavigation() {
 // Modals Handling
 function openModal(id) {
     document.getElementById(id).classList.add('show');
+    
+    // Pre-fill My Account Modal
+    if (id === 'my-account-modal') {
+        const dealerId = localStorage.getItem('dealerId');
+        const dealers = DB_ACTIONS.get('platform_dealers');
+        const dealer = dealers.find(d => d.id == dealerId) || {};
+        
+        document.getElementById('acc-shop-name').value = dealer.shopName || localStorage.getItem('shopName') || '';
+        document.getElementById('acc-username').value = dealer.username || '';
+        document.getElementById('acc-phone').value = dealer.phone || '';
+        document.getElementById('acc-email').value = dealer.email || localStorage.getItem('userEmail') || '';
+        document.getElementById('acc-pin').value = dealer.pin || '';
+    }
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('show');
+}
+
+async function handleAccountUpdate(e) {
+    e.preventDefault();
+    const dealerId = localStorage.getItem('dealerId');
+    const dealers = DB_ACTIONS.get('platform_dealers');
+    const index = dealers.findIndex(d => d.id == dealerId);
+    
+    if (index === -1) return alert("Security Error: User not found");
+    
+    const updatedDealer = {
+        ...dealers[index],
+        shopName: document.getElementById('acc-shop-name').value,
+        username: document.getElementById('acc-username').value,
+        phone: document.getElementById('acc-phone').value,
+        email: document.getElementById('acc-email').value,
+        pin: document.getElementById('acc-pin').value || dealers[index].pin
+    };
+    
+    dealers[index] = updatedDealer;
+    
+    try {
+        updateStatus('Updating Account...', '#007aff');
+        await DB_ACTIONS.set('platform_dealers', dealers);
+        
+        // Sync to local storage for immediate UI reflect
+        localStorage.setItem('shopName', updatedDealer.shopName);
+        localStorage.setItem('userEmail', updatedDealer.email);
+        
+        alert("✅ Account Details Updated Successfully!");
+        closeModal('my-account-modal');
+        location.reload(); // Refresh to update all UI headers
+    } catch(err) {
+        alert("Update Failed: " + err.message);
+    }
 }
 
 // Notification Helpers
