@@ -32,31 +32,48 @@
             </div>
             
             <div class="login-tabs card" style="display: flex; padding: 4px; gap: 4px; margin-bottom: 24px; border-radius: 12px; box-shadow: var(--shadow-1);">
-                <button type="button" class="login-tab active" onclick="switchLoginTab('admin')" id="tab-admin" style="flex: 1; padding: 12px; border: none; background: #eaf2ff; color: var(--accent-blue); border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">Admin Login</button>
-                <button type="button" class="login-tab" onclick="switchLoginTab('dealer')" id="tab-dealer" style="flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-secondary); border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">Dealer Sign Up</button>
+                <button type="button" class="login-tab active" onclick="switchLoginTab('dealer')" id="tab-dealer" style="flex: 1; padding: 12px; border: none; background: #eaf2ff; color: var(--accent-blue); border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">Dealer Access</button>
+                <button type="button" class="login-tab" onclick="switchLoginTab('admin')" id="tab-admin" style="flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-secondary); border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;">Secure Admin</button>
             </div>
             
             <!-- Forms container -->
             <div style="padding: 0 4px;">
-                <form id="form-admin-login" class="login-form active" onsubmit="handleLogin(event)">
+                <form id="form-dealer-login" class="login-form active" onsubmit="handleDealerAction(event, 'login')">
                     <div class="input-group">
-                        <label>Username / ID</label>
-                        <input type="text" value="admin" required>
+                        <label>Username</label>
+                        <input type="text" id="login-username" placeholder="Your username" required>
                     </div>
                     <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" id="admin-pass" value="1234" required>
+                        <label>6-Digit PIN</label>
+                        <input type="password" id="login-pin" maxlength="6" inputmode="numeric" placeholder="••••••" style="letter-spacing: 8px; text-align:center; font-size: 20px;" required>
                     </div>
-                    <a href="#" class="forgot-link" onclick="handleForgotPassword()">Forgot Password?</a>
-                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn">Login to Dashboard</button>
+                    <button type="submit" class="btn primary-btn checkout-btn shadow-btn">Log In to Shop</button>
                     
+                    <div style="text-align: center; margin-top: 15px;">
+                        <span style="font-size: 13px; color: var(--text-secondary);">First time? </span>
+                        <a href="#" onclick="openModal('register-dealer-modal')" style="color: var(--accent-blue); font-size: 13px; font-weight:600; text-decoration:none;">Create Account</a>
+                    </div>
+
                     <div class="or-divider">OR</div>
                     <div class="social-login">
-                        <button type="button" class="btn google-btn" onclick="handleGoogleLogin()" title="Google Login">
+                        <button type="button" class="btn google-btn" onclick="handleGoogleLogin()" title="Login with Google">
                             <img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google">
                         </button>
                     </div>
                 </form>
+
+                <form id="form-admin-login" class="login-form" style="display:none;" onsubmit="handleLogin(event)">
+                    <div class="input-group">
+                        <label>Admin Username</label>
+                        <input type="text" id="admin-user" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="admin-pass" required>
+                    </div>
+                    <button type="submit" class="btn primary-btn" style="background: #000;">Verify Admin</button>
+                </form>
+            </div>
                 
                 <form id="form-dealer-signup" class="login-form" style="display:none;" onsubmit="handleLogin(event)">
                     <div class="input-group">
@@ -424,9 +441,9 @@
                     <i class="fa-solid fa-handshake"></i>
                     <span>Dealer</span>
                 </button>
-                <button class="nav-item" data-target="reports">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>Reports</span>
+                <button class="nav-item" onclick="openModal('settings-modal')">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Menu</span>
                 </button>
             </nav>
         </aside>
@@ -653,6 +670,58 @@
             <div class="modal-footer" style="padding: 20px; display: flex; gap: 10px; background: #fbfbfd; border-top: 1px solid #f2f2f2;">
                 <button class="btn secondary-btn" onclick="closeModal('invoice-view-modal')" style="flex: 1;">Close</button>
                 <button class="btn primary-btn" onclick="window.print()" style="flex: 1;"><i class="fa-solid fa-print"></i> Print / Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Registation Modal -->
+    <div id="register-dealer-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px; border-radius: 24px; margin: auto; padding: 30px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 50px; height: 50px; background: var(--accent-blue); color: white; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 10px;">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <h3 style="font-weight: 700;">Open New Shop</h3>
+            </div>
+            <form id="form-dealer-register" onsubmit="handleDealerAction(event, 'register')">
+                <div class="input-group"><label>Shop Name</label><input type="text" id="reg-shop" required></div>
+                <div class="input-group"><label>Create Username</label><input type="text" id="reg-user" required></div>
+                <div class="input-group"><label>Set 6-Digit PIN</label><input type="password" maxlength="6" inputmode="numeric" id="reg-pin" placeholder="123456" required style="letter-spacing: 4px;"></div>
+                <div style="margin-top: 15px; display:flex; gap:10px;">
+                    <button type="button" class="btn secondary-btn" onclick="closeModal('register-dealer-modal')" style="flex:1;">Cancel</button>
+                    <button type="submit" class="btn primary-btn" style="flex:1;">Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Backup & Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content glass" style="max-width: 400px; border-radius: 20px; margin: auto;">
+            <div class="modal-header">
+                <h3>Settings & Cloud</h3>
+                <button class="close-btn" onclick="closeModal('settings-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="card" style="margin-bottom: 16px; padding: 15px; background: #eaf2ff; border: none;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-cloud-arrow-up" style="color:var(--accent-blue); font-size: 24px;"></i>
+                        <div>
+                            <p style="font-weight:600; font-size:14px;">Cloud Auto-Sync</p>
+                            <p style="font-size:11px; color:#666;">Your data is automatically backed up to our secure cloud server.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn secondary-btn" onclick="exportDataToJSON()" style="width:100%; margin-bottom: 10px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fa-solid fa-download"></i> Export Data (JSON)
+                </button>
+                
+                <button class="btn secondary-btn" onclick="openDriveBackup()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i class="fa-brands fa-google-drive"></i> Backup to Google Drive
+                </button>
+                
+                <p style="text-align:center; font-size: 11px; color: #888; margin-top: 20px;">Support: contact@mobistore.app</p>
             </div>
         </div>
     </div>

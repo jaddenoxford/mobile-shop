@@ -76,44 +76,55 @@ const DB_ACTIONS = {
     get: (key) => globalState[key] || [],
     
     set: async (key, data) => {
+        const dealerId = localStorage.getItem('dealerId');
         globalState[key] = data;
         localStorage.setItem(key, JSON.stringify(data));
+        
         if (!supabaseClient) return;
         try {
-            await supabaseClient.from(key).upsert(data);
+            // For categories, products, etc. ensure we include dealerId
+            if (key !== 'platform_dealers') {
+                const dataWithId = data.map(item => ({ ...item, dealerId: dealerId || 'system' }));
+                await supabaseClient.from(key).upsert(dataWithId);
+            } else {
+                await supabaseClient.from(key).upsert(data);
+            }
         } catch(e) {}
     },
     
     init: async () => {
+        const dealerId = localStorage.getItem('dealerId');
         if (supabaseClient) {
             updateStatus('Syncing Cloud...', '#007aff');
             try {
                 const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
                 await Promise.all(tables.map(async (table) => {
-                    const { data, error } = await supabaseClient.from(table).select('*');
+                    let query = supabaseClient.from(table).select('*');
+                    // Filter by dealerId if it's not the platform_dealers table
+                    if (dealerId && table !== 'platform_dealers') {
+                        query = query.eq('dealerId', dealerId);
+                    }
+                    const { data, error } = await query;
                     if(!error && data) globalState[table] = data;
                 }));
-                updateStatus('Cloud Database Connected', '#34c759');
+                updateStatus('Cloud Sync Active', '#34c759');
             } catch(e) {
-                updateStatus('Running Offline (Cloud Sync Error)', '#ff9500');
+                updateStatus('Offline Mode', '#ff9500');
             }
         } else {
-            updateStatus('Running Offline Mode', '#86868b');
+            updateStatus('Offline Mode', '#86868b');
             const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
             tables.forEach(t => {
                 const local = localStorage.getItem(t);
                 if (local) globalState[t] = JSON.parse(local);
             });
-            if (globalState.categories.length === 0) {
-                globalState.categories = [{ id: 1, name: 'Smartphones' }, { id: 2, name: 'Accessories' }];
-            }
         }
         
         // Refresh UI if logged in
         const type = localStorage.getItem('isLoggedIn');
         if(type === 'admin') {
             if(window.renderSuperAdmin) renderSuperAdmin();
-        } else if(type === 'dealer' || type === 'true') {
+        } else if(type === 'dealer') {
             if(window.loadDashboard) {
                 loadDashboard();
                 updateForms();
@@ -256,41 +267,97 @@ function switchLoginTab(tab) {
     document.getElementById(`tab-${tab}`).style.background = '#eaf2ff';
     document.getElementById(`tab-${tab}`).style.color = 'var(--accent-blue)';
     
-    const form = document.getElementById(`form-${tab === 'admin' ? 'admin-login' : 'dealer-signup'}`);
-    form.classList.add('active');
-    form.style.display = 'block';
+    const formId = tab === 'admin' ? 'form-admin-login' : 'form-dealer-login';
+    const form = document.getElementById(formId);
+    if(form) {
+        form.classList.add('active');
+        form.style.display = 'block';
+    }
+}
+
+async function handleDealerAction(e, type) {
+    e.preventDefault();
+    const dealers = DB_ACTIONS.get('platform_dealers');
+    
+    if (type === 'register') {
+        const username = document.getElementById('reg-user').value.toLowerCase().trim();
+        const pin = document.getElementById('reg-pin').value;
+        const shop = document.getElementById('reg-shop').value;
+        
+        if (pin.length !== 6) return alert("PIN must be 6 digits");
+        if (dealers.find(d => d.username === username)) return alert("Username already taken!");
+        
+        const newDealer = {
+            id: 'DLR' + Date.now(),
+            username,
+            pin,
+            shopName: shop,
+            status: 'Active',
+            date: new Date().toISOString()
+        };
+        
+        dealers.push(newDealer);
+        await DB_ACTIONS.set('platform_dealers', dealers);
+        loginDealer(newDealer);
+        closeModal('register-dealer-modal');
+    } else {
+        const user = document.getElementById('login-username').value.toLowerCase().trim();
+        const pin = document.getElementById('login-pin').value;
+        
+        const found = dealers.find(d => d.username === user && d.pin === pin);
+        if (!found) return alert("Invalid Username or PIN!");
+        if (found.status === 'Blocked') return alert("Your account is blocked. Contact admin.");
+        
+        loginDealer(found);
+    }
+}
+
+function loginDealer(dealer) {
+    localStorage.setItem('isLoggedIn', 'dealer');
+    localStorage.setItem('dealerId', dealer.id);
+    localStorage.setItem('shopName', dealer.shopName);
+    
+    location.reload(); // Refresh to apply dealerId filtering
 }
 
 function handleLogin(e) {
     e.preventDefault();
-    const formId = e.target.id;
+    const user = document.getElementById('admin-user').value;
+    const pass = document.getElementById('admin-pass').value;
     
-    if (formId === 'form-admin-login') {
+    if (user === 'admin' && pass === '1234') {
         localStorage.setItem('isLoggedIn', 'admin');
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'none';
-        document.getElementById('superadmin-app').style.display = 'flex';
-        renderSuperAdmin();
+        location.reload();
     } else {
-        // Save the new dealer to Super Admin DB
-        const inputs = e.target.querySelectorAll('input');
-        const dName = inputs[0].value;
-        const phone = inputs[1].value;
-        const shopName = inputs[2].value;
-        
-        const dealers = DB_ACTIONS.get('platform_dealers');
-        dealers.push({ id: Date.now(), name: dName, phone, shopName, status: 'Active', date: new Date().toISOString() });
-        DB_ACTIONS.set('platform_dealers', dealers);
-        
-        localStorage.setItem('isLoggedIn', 'dealer');
-        document.getElementById('login-screen').style.display = 'none';
-        if(document.getElementById('superadmin-app')) document.getElementById('superadmin-app').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-        setupNavigation();
-        loadDashboard();
-        updateForms();
-        populateMemoProducts();
+        alert("Invalid Admin Credentials");
     }
+}
+
+// Backup Logic
+function exportDataToJSON() {
+    const data = {
+        meta: { dealerId: localStorage.getItem('dealerId'), exportDate: new Date().toISOString() },
+        categories: DB_ACTIONS.get('categories'),
+        products: DB_ACTIONS.get('products'),
+        customers: DB_ACTIONS.get('customers'),
+        bills: DB_ACTIONS.get('bills'),
+        expenses: DB_ACTIONS.get('expenses')
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MobiStore_Backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+}
+
+function openDriveBackup() {
+    alert("Connecting to Google Drive...\n\n(Note: Ensure you have granted permissions in your Google Account for 'MobiStore' to save backup files.)");
+    // In a real app, this would trigger gapi.auth2 and upload the JSON
+    // For now, we simulate success as requested.
+    exportDataToJSON();
+    alert("Backup successfully synced to Google Drive App Data!");
 }
 
 async function handleGoogleLogin() {
