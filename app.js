@@ -152,21 +152,14 @@ const DB_ACTIONS = {
             console.warn("Cloud Sync Failed, sticking to Local:", e);
             updateStatus('Local Mode', '#ff9500');
         }
-    }
-};
 
-        // --- FIX: Ensure Demo Dealer always exists in globalState ---
+        // --- Ensure Demo Dealer always exists in globalState ---
         const demoExists = globalState.platform_dealers.find(d => d.username === 'mobile');
         if (!demoExists) {
             globalState.platform_dealers.push({
-                id: 'DLR_DEMO', 
-                username: 'mobile', 
-                pin: '123456', 
-                shopName: 'Demo Mobile Shop', 
-                status: 'Active', 
-                date: new Date().toISOString()
+                id: 'DLR_DEMO', username: 'mobile', pin: '123456', 
+                shopName: 'Demo Mobile Shop', status: 'Active', date: new Date().toISOString()
             });
-            // Add sample categories for demo
             if (globalState.categories.length === 0) {
                 globalState.categories.push(
                     { id: 101, name: 'Smartphones', dealerId: 'DLR_DEMO' },
@@ -179,12 +172,12 @@ const DB_ACTIONS = {
         const type = localStorage.getItem('isLoggedIn');
         if(type === 'admin') {
             if(window.renderSuperAdmin) renderSuperAdmin();
-        } else if(type === 'dealer') {
+        } else if(type === 'dealer' || type === 'true') {
             if(window.loadDashboard) {
                 loadDashboard();
                 updateForms();
-                populateMemoProducts();
-                renderMemos();
+                if(window.populateMemoProducts) populateMemoProducts();
+                if(window.renderMemos) renderMemos();
             }
         }
     }
