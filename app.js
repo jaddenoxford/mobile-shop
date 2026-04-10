@@ -73,6 +73,12 @@ async function checkManualHash() {
     }
 }
 
+async function getGoogleAccessToken() {
+    if (!supabaseClient) return null;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session?.provider_token || null;
+}
+
 const DB_ACTIONS = {
     get: (key) => globalState[key] || [],
     
@@ -81,6 +87,11 @@ const DB_ACTIONS = {
         globalState[key] = data;
         localStorage.setItem(key, JSON.stringify(data));
         
+        // Trigger Auto-Sync to Google Drive if it's main shop data
+        if (['products', 'customers', 'bills', 'categories', 'expenses', 'memos'].includes(key)) {
+            triggerDriveAutoBackup();
+        }
+
         if (!supabaseClient) return;
         try {
             if (key !== 'platform_dealers' && key !== 'system_announcement' && key !== 'app_global_settings') {
@@ -310,14 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Database Initialization (Background)
     DB_ACTIONS.init().then(() => {
-        // Auto-restore trigger
-        if (localStorage.getItem('checkDriveBackup') === 'true' && localStorage.getItem('isLoggedIn') === 'dealer') {
-            localStorage.removeItem('checkDriveBackup');
-            setTimeout(() => {
-                if (confirm("Welcome back! Would you like to restore your shop data from your Google Drive backup?")) {
-                    restoreFromGoogleDrive();
-                }
-            }, 1000);
+        // Auto-restore trigger (New Approach: Check if empty and logged in with Google)
+        const products = DB_ACTIONS.get('products');
+        if (products.length === 0 && localStorage.getItem('isLoggedIn') === 'dealer') {
+            console.log("Empty shop detected. Attempting auto-restore from Drive...");
+            restoreFromGoogleDrive(true);
         }
     }).catch(err => {
         console.error("Init Background Fail", err);
@@ -428,11 +436,64 @@ function exportDataToJSON() {
 
 // --- Google Drive Real Implementation ---
 const DRIVE_FILE_NAME = 'MobiStore_Data_Backup.json';
+let driveSyncTimer = null;
 
-async function getGoogleAccessToken() {
-    if (!supabaseClient) return null;
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    return session?.provider_token || null;
+function triggerDriveAutoBackup() {
+    if (driveSyncTimer) clearTimeout(driveSyncTimer);
+    driveSyncTimer = setTimeout(() => {
+        updateStatus('Auto-Syncing Drive...', '#5856d6');
+        silentlySyncToDrive();
+    }, 5000); // Wait 5 seconds after changes to avoid spamming Google API
+}
+
+async function silentlySyncToDrive() {
+    let token = await getGoogleAccessToken();
+    if (!token) return;
+
+    try {
+        const data = {
+            meta: { 
+                dealerId: localStorage.getItem('dealerId'), 
+                exportDate: new Date().toISOString(),
+                shopName: localStorage.getItem('shopName')
+            },
+            categories: DB_ACTIONS.get('categories'),
+            products: DB_ACTIONS.get('products'),
+            customers: DB_ACTIONS.get('customers'),
+            bills: DB_ACTIONS.get('bills'),
+            expenses: DB_ACTIONS.get('expenses'),
+            memos: DB_ACTIONS.get('memos')
+        };
+
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}' and trashed=false&fields=files(id)`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const searchData = await searchRes.json();
+        const existingFileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
+
+        let res;
+        if (existingFileId) {
+            res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        } else {
+            const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+            res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: form
+            });
+        }
+        if (res.ok) {
+            console.log("Drive Auto-Sync Complete.");
+            updateStatus('Cloud Sync Active', '#34c759');
+        }
+    } catch (e) {
+        console.error("Silent Drive Sync Fail:", e);
+    }
 }
 
 async function openDriveBackup() {
@@ -524,16 +585,18 @@ async function openDriveBackup() {
     }
 }
 
-async function restoreFromGoogleDrive() {
+async function restoreFromGoogleDrive(isAuto = false) {
     let token = await getGoogleAccessToken();
     if (!token) {
-        alert("Please login with Google first to access your Drive.");
-        handleGoogleLogin();
+        if(!isAuto) {
+            alert("Please login with Google first to access your Drive.");
+            handleGoogleLogin();
+        }
         return;
     }
 
     try {
-        updateStatus('Restoring from Drive...', '#007aff');
+        if(!isAuto) updateStatus('Restoring from Drive...', '#007aff');
         
         // 1. Search for file
         const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}' and trashed=false&fields=files(id)`, {
@@ -543,17 +606,16 @@ async function restoreFromGoogleDrive() {
         
         if (searchData.error) {
             console.error("Drive Search Restore Error:", searchData.error);
-            if (searchData.error.code === 401) { 
+            if (searchData.error.code === 401 && !isAuto) { 
                  handleGoogleLogin(); 
-                 return; 
             }
-            throw new Error(searchData.error.message);
+            return;
         }
 
         const existingFileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
 
         if (!existingFileId) {
-            alert("No MobiStore backup file found on your Google Drive.");
+            if(!isAuto) alert("No MobiStore backup file found on your Google Drive.");
             updateStatus('Cloud Sync Active', '#34c759');
             return;
         }
@@ -568,11 +630,25 @@ async function restoreFromGoogleDrive() {
             const data = await res.json();
             const dateStr = data.meta?.exportDate ? new Date(data.meta.exportDate).toLocaleString() : 'Unknown Date';
             
-            if (confirm(`Found backup for "${data.meta?.shopName || 'Unknown Shop'}" from ${dateStr}. \n\nThis will REPLACE your current local data. Continue?`)) {
+            // Auto restore if local products are empty
+            const currentProds = DB_ACTIONS.get('products');
+            if (isAuto && currentProds.length === 0) {
+                console.log("Auto-Restoring data from Drive...");
                 const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos'];
                 for (const t of tables) {
                     if (data[t]) {
-                        // Set in global state and localStorage
+                        globalState[t] = data[t];
+                        localStorage.setItem(t, JSON.stringify(data[t]));
+                    }
+                }
+                location.reload(); // Refresh to apply
+                return;
+            }
+
+            if (!isAuto && confirm(`Found backup for "${data.meta?.shopName || 'Unknown Shop'}" from ${dateStr}. \n\nThis will REPLACE your current local data. Continue?`)) {
+                const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos'];
+                for (const t of tables) {
+                    if (data[t]) {
                         globalState[t] = data[t];
                         localStorage.setItem(t, JSON.stringify(data[t]));
                     }
@@ -580,12 +656,12 @@ async function restoreFromGoogleDrive() {
                 alert("✅ Restoration Successful! The app will now reload.");
                 location.reload();
             }
-        } else {
+        } else if(!isAuto) {
             throw new Error("Failed to download backup file from Drive.");
         }
     } catch (e) {
         console.error("Drive Restore Error:", e);
-        alert("Drive Restore Failed: " + e.message);
+        if(!isAuto) alert("Drive Restore Failed: " + e.message);
         updateStatus('Restore Failed', '#ff3b30');
     }
 }
