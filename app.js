@@ -83,63 +83,77 @@ const DB_ACTIONS = {
         
         if (!supabaseClient) return;
         try {
-            // For categories, products, etc. ensure we include dealerId
-            if (key !== 'platform_dealers') {
+            if (key !== 'platform_dealers' && key !== 'system_announcement' && key !== 'app_global_settings') {
                 const dataWithId = data.map(item => ({ 
                     ...item, 
                     dealerId: dealerId || 'system',
                     updatedAt: new Date().toISOString()
                 }));
-                // We attempt upsert but don't let it crash the app if columns are missing
-                supabaseClient.from(key).upsert(dataWithId).then(({error}) => {
-                    if(error) console.warn("Supabase Sync Error (likely missing dealerId column):", error);
-                });
-            } else {
+                await supabaseClient.from(key).upsert(dataWithId);
+            } else if (key === 'platform_dealers') {
                 await supabaseClient.from(key).upsert(data);
             }
-        } catch(e) {}
+        } catch(e) {
+            console.warn(`Supabase Sync Error for ${key}:`, e);
+        }
     },
     
     init: async () => {
         const dealerId = localStorage.getItem('dealerId');
-        if (supabaseClient) {
-            updateStatus('Syncing Cloud...', '#007aff');
-            try {
-                const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
-                await Promise.all(tables.map(async (table) => {
-                    let query = supabaseClient.from(table).select('*');
-                    // Filter by dealerId if it's not the platform_dealers table
-                    if (dealerId && table !== 'platform_dealers') {
-                        query = query.eq('dealerId', dealerId);
-                    }
-                    const { data, error } = await query;
-                    if(!error && data) globalState[table] = data;
-                }));
-                updateStatus('Cloud Sync Active', '#34c759');
-            } catch(e) {
-                updateStatus('Offline Mode', '#ff9500');
+        const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
+        
+        // 1. Load Local Storage FIRST (Local-First)
+        updateStatus('Loading Local...', '#007aff');
+        tables.forEach(t => {
+            const local = localStorage.getItem(t);
+            if (local) {
+                try {
+                    globalState[t] = JSON.parse(local);
+                } catch(e) { console.error(`Error parsing local ${t}`); }
             }
-        } else {
-            updateStatus('Offline Mode', '#86868b');
-            const tables = ['categories', 'products', 'customers', 'bills', 'expenses', 'memos', 'platform_dealers'];
-            tables.forEach(t => {
-                const local = localStorage.getItem(t);
-                if (local) globalState[t] = JSON.parse(local);
-            });
+        });
 
-            // Add demo dealer only if no dealers exist
-            if (globalState.platform_dealers.length === 0) {
-                globalState.platform_dealers = [{ 
-                    id: 'DLR_DEMO', 
-                    username: 'mobile', 
-                    pin: '123456', 
-                    shopName: 'Mobile Hero Shop', 
-                    status: 'Active', 
-                    date: new Date().toISOString() 
-                }];
-                globalState.categories = [{ id: 1, name: 'Smartphones', dealerId: 'DLR_DEMO' }, { id: 2, name: 'Accessories', dealerId: 'DLR_DEMO' }];
-            }
+        // 2. Load Demo Data if absolutely empty
+        if (globalState.platform_dealers.length === 0) {
+            globalState.platform_dealers = [{ 
+                id: 'DLR_DEMO', username: 'mobile', pin: '123456', 
+                shopName: 'Demo Shop', status: 'Active', date: new Date().toISOString() 
+            }];
         }
+
+        // 3. Sync from Cloud in Background
+        if (!supabaseClient) {
+            updateStatus('Offline Mode', '#86868b');
+            return;
+        }
+
+        try {
+            updateStatus('Syncing Cloud...', '#007aff');
+            await Promise.all(tables.map(async (table) => {
+                let query = supabaseClient.from(table).select('*');
+                if (dealerId && table !== 'platform_dealers') {
+                    query = query.eq('dealerId', dealerId);
+                }
+                const { data, error } = await query;
+                
+                if(!error && data && data.length > 0) {
+                    // Merge Strategy: Cloud takes priority if it has data
+                    globalState[table] = data;
+                    localStorage.setItem(table, JSON.stringify(data));
+                }
+            }));
+            
+            // Check for system announcement
+            const { data: ann } = await supabaseClient.from('system_announcement').select('*').limit(1).single();
+            if(ann) globalState.system_announcement = ann;
+
+            updateStatus('Cloud Sync Active', '#34c759');
+        } catch(e) {
+            console.warn("Cloud Sync Failed, sticking to Local:", e);
+            updateStatus('Local Mode', '#ff9500');
+        }
+    }
+};
 
         // --- FIX: Ensure Demo Dealer always exists in globalState ---
         const demoExists = globalState.platform_dealers.find(d => d.username === 'mobile');
