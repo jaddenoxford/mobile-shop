@@ -429,6 +429,7 @@ async function getGoogleAccessToken() {
 
 async function openDriveBackup() {
     let token = await getGoogleAccessToken();
+    console.log("Drive Sync: Attempting backup with token:", token ? "Exist (starts with " + token.substring(0,5) + "...) " : "Null");
     
     if (!token) {
         if(confirm("To backup to Google Drive, you should sign in with Google and grant 'drive.file' permission. Continue?")) {
@@ -454,14 +455,16 @@ async function openDriveBackup() {
         };
 
         // 1. Search for existing file
-        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}'&fields=files(id)`, {
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}' and trashed=false&fields=files(id)`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const searchData = await searchRes.json();
         
         if (searchData.error) {
-            if (searchData.error.status === 'UNAUTHENTICATED' || searchData.error.code === 401 || searchData.error.code === 403) {
-                alert("Session expired or permissions missing. Re-logging in...");
+            console.error("Drive Search Error:", searchData.error);
+            const code = searchData.error.code;
+            if (code === 401 || code === 403) {
+                alert("Session expired or permissions missing. Re-authenticating with Google...");
                 handleGoogleLogin();
                 return;
             }
@@ -469,6 +472,7 @@ async function openDriveBackup() {
         }
 
         const existingFileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
+        console.log("Drive Sync: Existing file ID found:", existingFileId);
 
         let res;
         if (existingFileId) {
@@ -496,12 +500,18 @@ async function openDriveBackup() {
             alert("✅ Shop data successfully backed up to your Google Drive!");
             updateStatus('Cloud Sync Active', '#34c759');
         } else {
-            const err = await res.json();
-            throw new Error(err.error?.message || "Failed to save to Drive");
+            const errData = await res.json();
+            console.error("Drive Save Error:", errData);
+            if (errData.error?.code === 401) {
+                alert("Session expired. Re-authenticating...");
+                handleGoogleLogin();
+                return;
+            }
+            throw new Error(errData.error?.message || "Failed to save to Drive");
         }
     } catch (e) {
-        console.error("Drive Backup Error:", e);
-        alert("Drive Backup Failed: " + e.message + "\n\nTry logging in again to refresh Google permissions.");
+        console.error("Drive Backup Exception:", e);
+        alert("Drive Backup Failed: " + e.message + "\n\nPlease try again or re-login to refresh permissions.");
         updateStatus('Drive Failed', '#ff3b30');
     }
 }
@@ -518,10 +528,20 @@ async function restoreFromGoogleDrive() {
         updateStatus('Restoring from Drive...', '#007aff');
         
         // 1. Search for file
-        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}'&fields=files(id)`, {
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}' and trashed=false&fields=files(id)`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const searchData = await searchRes.json();
+        
+        if (searchData.error) {
+            console.error("Drive Search Restore Error:", searchData.error);
+            if (searchData.error.code === 401) { 
+                 handleGoogleLogin(); 
+                 return; 
+            }
+            throw new Error(searchData.error.message);
+        }
+
         const existingFileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
 
         if (!existingFileId) {
@@ -529,6 +549,7 @@ async function restoreFromGoogleDrive() {
             updateStatus('Cloud Sync Active', '#34c759');
             return;
         }
+
 
         // 2. Download content
         const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFileId}?alt=media`, {
@@ -568,14 +589,15 @@ async function handleGoogleLogin() {
         updateStatus('Connecting Google...', '#007aff');
         const redirectUrl = window.location.origin.replace(/\/$/, "");
         
+        // Use proper scopes property and select_account to avoid repetitive consent screens
         const { error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: redirectUrl,
+                scopes: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid',
                 queryParams: {
                     access_type: 'offline',
-                    prompt: 'consent',
-                    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile'
+                    prompt: 'select_account'
                 }
             }
         });
